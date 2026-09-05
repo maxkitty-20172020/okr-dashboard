@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f3efe6;
+  --card: #fffcf7;
+  --ink: #16202b;
+  --muted: #6b6258;
+  --line: #e4dccf;
+  --gold: #b08d57;
+  --gold-strong: #8c6a32;
+  --forest: #2f5d50;
+  --danger: #9b3d2c;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-forest: var(--forest);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-newsreader);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), "PingFang SC", "Hiragino Sans GB", "Noto Sans SC",
+    "Microsoft YaHei", sans-serif;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+.progress-track {
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ebe4d6;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2f5d50, #b08d57);
+}

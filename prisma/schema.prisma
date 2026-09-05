@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BOSS
+  MANAGER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         Role         @default(MANAGER)
+  objectives   Objective[]
+  tasks        WeeklyTask[]
+  createdAt    DateTime     @default(now())
+}
+
+model Objective {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @default("")
+  cycle       String
+  ownerId     String
+  owner       User        @relation(fields: [ownerId], references: [id])
+  keyResults  KeyResult[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model KeyResult {
+  id           String       @id @default(cuid())
+  title        String
+  currentValue Float        @default(0)
+  targetValue  Float
+  unit         String       @default("%")
+  objectiveId  String
+  objective    Objective    @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  tasks        WeeklyTask[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model WeeklyTask {
+  id          String     @id @default(cuid())
+  title       String
+  status      TaskStatus @default(TODO)
+  weekStart   DateTime
+  ownerId     String
+  owner       User       @relation(fields: [ownerId], references: [id])
+  keyResultId String?
+  keyResult   KeyResult? @relation(fields: [keyResultId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([weekStart, ownerId])
+}
