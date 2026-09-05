@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { SESSION_COOKIE } from "@/lib/constants";
+import { prisma } from "@/lib/prisma";
 
 export { SESSION_COOKIE };
 
@@ -59,12 +60,7 @@ export async function getSession(): Promise<SessionUser | null> {
     ) {
       return null;
     }
-    return {
-      id: payload.id,
-      name: payload.name,
-      email: payload.email,
-      role: payload.role,
-    };
+    return await prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, name: true, email: true, role: true } });
   } catch {
     return null;
   }
@@ -81,4 +77,10 @@ export async function requireSession(): Promise<SessionUser> {
 export async function destroySession() {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
+}
+
+export async function requireWriter() {
+  const user = await requireSession();
+  if (user.role === "BOSS") redirect("/?error=read-only");
+  return user;
 }

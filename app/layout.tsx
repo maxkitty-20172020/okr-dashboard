@@ -19,8 +19,8 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "OKR 面板",
-  description: "管理层每周对齐目标与任务进度",
+  title: "运营部 · 任务与进展",
+  description: "持续跟进部门事项、分工与协作进展",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

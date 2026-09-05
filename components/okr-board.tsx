@@ -20,18 +20,21 @@ export function OkrBoard({
   users,
   objectives,
   cycle,
+  readOnly = false,
 }: {
   currentUserId: string;
   users: User[];
   objectives: ObjectiveRow[];
   cycle: string;
+  readOnly?: boolean;
 }) {
 
+  if (readOnly) return <div className="page"><header className="page-heading"><div><p className="eyebrow">经营结果</p><h1>目标与结果</h1><p className="muted">查看目标、当前值与关键结果，老板账号无需填写。</p></div><span className="readonly-label">老板账号 · 只读</span></header><div className="space-y-4">{objectives.map(o => <article key={o.id} className="surface detail-section"><p className="muted small">{o.cycle} · {o.owner.name}</p><h2>{o.title}</h2><p className="section-help">{o.description}</p><div className="space-y-4">{o.keyResults.map(kr => <div key={kr.id}><div className="section-heading"><span>{kr.title}</span><span className="muted small">{kr.direction === "DECREASE" ? "降低" : "提升"} · 当前 {kr.currentValue} / 目标 {kr.targetValue} {kr.unit}</span></div><ProgressBar value={progressPercent(kr.currentValue, kr.targetValue, kr.baselineValue, kr.direction)} /><p className="muted small">起点 {kr.baselineValue} {kr.unit}</p></div>)}</div></article>)}{!objectives.length && <div className="empty-state">还没有设置目标与关键结果。</div>}</div></div>;
   return (
     <div className="space-y-8">
       <header>
         <p className="text-xs tracking-[0.18em] text-muted uppercase">Objectives</p>
-        <h1 className="mt-2 font-serif text-4xl italic">OKR 编辑</h1>
+        <h1 className="mt-2 font-serif text-4xl italic">目标与结果</h1>
         <p className="mt-2 text-muted">先写目标，再补可量化的关键结果。当前周期 {cycle}</p>
       </header>
 
@@ -148,7 +151,7 @@ export function OkrBoard({
               {objective.keyResults.map((kr) => (
                 <div key={kr.id} className="rounded-xl bg-paper p-4">
                   <div className="mb-3">
-                    <ProgressBar value={progressPercent(kr.currentValue, kr.targetValue)} />
+                    <ProgressBar value={progressPercent(kr.currentValue, kr.targetValue, kr.baselineValue, kr.direction)} />
                   </div>
                   <form action={updateKeyResultAction} className="grid gap-3 md:grid-cols-4">
                     <input type="hidden" name="id" value={kr.id} />
@@ -181,6 +184,8 @@ export function OkrBoard({
                         className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
                       />
                     </label>
+                    <label><span className="mb-1 block text-xs text-muted">起点值</span><input className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="baselineValue" type="number" step="any" defaultValue={kr.baselineValue} required /></label>
+                    <label><span className="mb-1 block text-xs text-muted">目标方向</span><select className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="direction" defaultValue={kr.direction}><option value="INCREASE">提升（目标高于起点）</option><option value="DECREASE">降低（目标低于起点）</option></select></label>
                     <label>
                       <span className="mb-1 block text-xs text-muted">单位</span>
                       <input
@@ -235,6 +240,8 @@ export function OkrBoard({
                     className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
                   />
                 </label>
+                <label><span className="mb-1 block text-xs text-muted">起点值</span><input className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="baselineValue" type="number" step="any" defaultValue={0} required /></label>
+                <label><span className="mb-1 block text-xs text-muted">目标方向</span><select className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="direction" defaultValue="INCREASE"><option value="INCREASE">提升（目标高于起点）</option><option value="DECREASE">降低（目标低于起点）</option></select></label>
                 <label>
                   <span className="mb-1 block text-xs text-muted">单位</span>
                   <input

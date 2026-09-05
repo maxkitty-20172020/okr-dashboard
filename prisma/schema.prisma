@@ -15,7 +15,27 @@ enum Role {
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  WAITING
+  BLOCKED
   DONE
+  CANCELLED
+}
+
+enum TaskArea {
+  BUSINESS
+  PEOPLE
+  INVENTORY
+  OTHER
+}
+
+enum TaskKind {
+  SHORT_TERM
+  LONG_TERM
+}
+
+enum TaskHealth {
+  ON_TRACK
+  AT_RISK
 }
 
 model User {
@@ -25,7 +45,9 @@ model User {
   passwordHash String
   role         Role         @default(MANAGER)
   objectives   Objective[]
-  tasks        WeeklyTask[]
+  tasks        Task[]
+  collaborations TaskCollaborator[]
+  taskUpdates  TaskUpdate[]
   createdAt    DateTime     @default(now())
 }
 
@@ -46,25 +68,85 @@ model KeyResult {
   title        String
   currentValue Float        @default(0)
   targetValue  Float
+  baselineValue Float @default(0)
+  direction String @default("INCREASE")
   unit         String       @default("%")
   objectiveId  String
   objective    Objective    @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
-  tasks        WeeklyTask[]
+  tasks        Task[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
 
-model WeeklyTask {
+model Task {
   id          String     @id @default(cuid())
   title       String
   status      TaskStatus @default(TODO)
-  weekStart   DateTime
+  legacyWeekStart DateTime? @map("weekStart")
+  area        TaskArea @default(OTHER)
+  kind        TaskKind @default(SHORT_TERM)
+  priority    Int @default(1)
+  scope       String @default("")
+  completionCriteria String @default("")
+  latestProgress String @default("")
+  nextAction  String @default("")
+  health      TaskHealth @default(ON_TRACK)
+  riskNote    String @default("")
+  dueAt       DateTime?
+  nextFollowUpAt DateTime?
+  lastConfirmedAt DateTime?
+  completedAt DateTime?
+  archivedAt  DateTime?
+  version     Int @default(0)
   ownerId     String
   owner       User       @relation(fields: [ownerId], references: [id])
   keyResultId String?
   keyResult   KeyResult? @relation(fields: [keyResultId], references: [id], onDelete: SetNull)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  collaborators TaskCollaborator[]
+  updates TaskUpdate[]
+  milestones TaskMilestone[]
 
-  @@index([weekStart, ownerId])
+  @@index([archivedAt, status])
+  @@index([ownerId, nextFollowUpAt])
+  @@map("WeeklyTask")
+}
+
+model TaskCollaborator {
+  id String @id @default(cuid())
+  taskId String
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  deliverable String
+  dueAt DateTime?
+  done Boolean @default(false)
+  note String @default("")
+  active Boolean @default(true)
+  updatedAt DateTime @updatedAt
+  @@unique([taskId, userId])
+}
+
+model TaskMilestone {
+  id String @id @default(cuid())
+  taskId String
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title String
+  dueAt DateTime?
+  done Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+
+model TaskUpdate {
+  id String @id @default(cuid())
+  taskId String
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId String?
+  author User? @relation(fields: [authorId], references: [id])
+  kind String
+  body String
+  snapshot String @default("{}")
+  createdAt DateTime @default(now())
+  @@index([taskId, createdAt])
 }

@@ -1,197 +1,26 @@
-import { PrismaClient, TaskStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
-import { currentCycle, startOfWeek } from "../lib/week";
-
+import { currentCycle } from "../lib/week";
+import { today, snapshot } from "../lib/tasks";
 const prisma = new PrismaClient();
-
-const DEFAULT_PASSWORD = "okr12345";
+const future = (days: number) => new Date(today().getTime() + days * 86400_000);
 
 async function main() {
-  const passwordHash = await hash(DEFAULT_PASSWORD, 10);
-  const cycle = currentCycle();
-  const weekStart = startOfWeek();
-
-  await prisma.weeklyTask.deleteMany();
-  await prisma.keyResult.deleteMany();
-  await prisma.objective.deleteMany();
-  await prisma.user.deleteMany();
-
-  const boss = await prisma.user.create({
-    data: {
-      name: "陈总",
-      email: "boss@okr.local",
-      passwordHash,
-      role: "BOSS",
-    },
-  });
-
-  const li = await prisma.user.create({
-    data: {
-      name: "李明",
-      email: "li@okr.local",
-      passwordHash,
-      role: "MANAGER",
-    },
-  });
-
-  const wang = await prisma.user.create({
-    data: {
-      name: "王芳",
-      email: "wang@okr.local",
-      passwordHash,
-      role: "MANAGER",
-    },
-  });
-
-  const zhao = await prisma.user.create({
-    data: {
-      name: "赵强",
-      email: "zhao@okr.local",
-      passwordHash,
-      role: "MANAGER",
-    },
-  });
-
-  const quality = await prisma.objective.create({
-    data: {
-      title: "提升经营质量，把利润做厚",
-      description: "围绕毛利和复购，把公司从规模优先转到质量优先。",
-      cycle,
-      ownerId: boss.id,
-      keyResults: {
-        create: [
-          {
-            title: "季度毛利率达到 35%",
-            currentValue: 28,
-            targetValue: 35,
-            unit: "%",
-          },
-          {
-            title: "核心产品复购率达到 40%",
-            currentValue: 31,
-            targetValue: 40,
-            unit: "%",
-          },
-        ],
-      },
-    },
-    include: { keyResults: true },
-  });
-
-  const org = await prisma.objective.create({
-    data: {
-      title: "让管理层每周对齐一次真实进度",
-      description: "用同一块面板看目标、看任务，减少口头同步损耗。",
-      cycle,
-      ownerId: li.id,
-      keyResults: {
-        create: [
-          {
-            title: "管理层周会准时完成率 100%",
-            currentValue: 75,
-            targetValue: 100,
-            unit: "%",
-          },
-        ],
-      },
-    },
-    include: { keyResults: true },
-  });
-
-  const market = await prisma.objective.create({
-    data: {
-      title: "拿下可复制的标杆客户",
-      description: "优先服务能沉淀方法论的客户，而不是只堆数量。",
-      cycle,
-      ownerId: wang.id,
-      keyResults: {
-        create: [
-          {
-            title: "新增标杆客户 8 家",
-            currentValue: 3,
-            targetValue: 8,
-            unit: "家",
-          },
-        ],
-      },
-    },
-    include: { keyResults: true },
-  });
-
-  const delivery = await prisma.objective.create({
-    data: {
-      title: "把交付节奏稳住",
-      description: "减少延期，让一线承诺和管理层看到的进度一致。",
-      cycle,
-      ownerId: zhao.id,
-      keyResults: {
-        create: [
-          {
-            title: "准时交付率达到 95%",
-            currentValue: 88,
-            targetValue: 95,
-            unit: "%",
-          },
-        ],
-      },
-    },
-    include: { keyResults: true },
-  });
-
-  await prisma.weeklyTask.createMany({
-    data: [
-      {
-        title: "复核本季度毛利口径，并在周会上对齐一次",
-        status: TaskStatus.IN_PROGRESS,
-        weekStart,
-        ownerId: boss.id,
-        keyResultId: quality.keyResults[0]?.id,
-      },
-      {
-        title: "整理本周经营异常，列出 3 个需要管理层拍板的问题",
-        status: TaskStatus.TODO,
-        weekStart,
-        ownerId: boss.id,
-        keyResultId: quality.keyResults[1]?.id,
-      },
-      {
-        title: "把四人本周任务全部录入面板，并检查缺项",
-        status: TaskStatus.DONE,
-        weekStart,
-        ownerId: li.id,
-        keyResultId: org.keyResults[0]?.id,
-      },
-      {
-        title: "准备下周周会材料：目标进度 + 风险清单",
-        status: TaskStatus.IN_PROGRESS,
-        weekStart,
-        ownerId: li.id,
-        keyResultId: org.keyResults[0]?.id,
-      },
-      {
-        title: "拜访 2 家潜在标杆客户，记录可复制条件",
-        status: TaskStatus.IN_PROGRESS,
-        weekStart,
-        ownerId: wang.id,
-        keyResultId: market.keyResults[0]?.id,
-      },
-      {
-        title: "复盘上月延期订单，给出本周纠偏动作",
-        status: TaskStatus.TODO,
-        weekStart,
-        ownerId: zhao.id,
-        keyResultId: delivery.keyResults[0]?.id,
-      },
-    ],
+  if (await prisma.user.count()) {
+    console.log("已有账号和数据，跳过演示数据初始化。请勿用 seed 重置工作数据。");
+    return;
+  }
+  const passwordHash = await hash("okr12345", 10);
+  await prisma.$transaction(async tx => {
+    await tx.user.create({ data: { name: "陈总", email: "okr@okr.local", passwordHash, role: "BOSS" } });
+    const li = await tx.user.create({ data: { name: "李明", email: "okr1@okr.local", passwordHash, role: "MANAGER" } });
+    const wang = await tx.user.create({ data: { name: "王芳", email: "okr2@okr.local", passwordHash, role: "MANAGER" } });
+    const zhao = await tx.user.create({ data: { name: "赵强", email: "okr3@okr.local", passwordHash, role: "MANAGER" } });
+    const objective = await tx.objective.create({ data: { title: "改善核心产品运营效率", description: "演示目标：降低广告成本并验证产品转化改进。", cycle: currentCycle(), ownerId: li.id, keyResults: { create: { title: "ACOS 从 35% 降至 25%", baselineValue: 35, targetValue: 25, currentValue: 30, direction: "DECREASE", unit: "%" } } }, include: { keyResults: true } });
+    const business = await tx.task.create({ data: { title: "验证核心产品主图方案", area: "BUSINESS", kind: "LONG_TERM", ownerId: li.id, scope: "美国站 · 厨房线", completionCriteria: "取得测试结果，确定采用哪版主图并记录依据。", status: "WAITING", latestProgress: "两版主图已就绪，测试运行中。", nextAction: "按约定日期收集结果", nextFollowUpAt: future(7), dueAt: future(14), lastConfirmedAt: new Date(), keyResultId: objective.keyResults[0].id, milestones: { create: [{ title: "准备两版主图", done: true }, { title: "取得测试结果", dueAt: future(12) }, { title: "确定最终方案", dueAt: future(14) }] } }, include: { owner: true } });
+    const people = await tx.task.create({ data: { title: "新人独立接手产品线", area: "PEOPLE", kind: "LONG_TERM", ownerId: wang.id, completionCriteria: "通过独立操作验收，并完成任务交接。", status: "IN_PROGRESS", latestProgress: "已完成基础培训，准备独立操作验收。", nextAction: "与业务负责人确认验收标准", nextFollowUpAt: future(2), dueAt: future(10), lastConfirmedAt: new Date(), collaborators: { create: { userId: li.id, deliverable: "提供业务验收标准", dueAt: future(2) } } }, include: { owner: true } });
+    const inventory = await tx.task.create({ data: { title: "确认旺季备货与出货排期", area: "INVENTORY", kind: "LONG_TERM", ownerId: zhao.id, priority: 2, scope: "英国站 · 收纳线", completionCriteria: "确认销量预测、补货数量及供应商出货排期。", status: "BLOCKED", health: "AT_RISK", latestProgress: "销售预测已交付，供应商尚未确认档期。", riskNote: "可能影响备货节点，需要主管协调采购确认备用方案。", nextAction: "与采购确认供应商档期", nextFollowUpAt: future(0), dueAt: future(20), lastConfirmedAt: new Date(), collaborators: { create: [{ userId: li.id, deliverable: "提供销售预测", done: true, note: "预测清单已交付。" }, { userId: wang.id, deliverable: "协调旺季人员与备岗", dueAt: future(5) }] } }, include: { owner: true } });
+    for (const task of [business, people, inventory]) await tx.taskUpdate.create({ data: { taskId: task.id, authorId: task.ownerId, kind: "CREATED", body: "初始化演示事项。" + task.latestProgress, snapshot: snapshot(task) } });
   });
 }
-
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (error) => {
-    console.error(error);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+main().then(() => prisma.$disconnect()).catch(async error => { console.error(error); await prisma.$disconnect(); process.exit(1); });

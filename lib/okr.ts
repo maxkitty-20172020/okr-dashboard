@@ -1,8 +1,8 @@
-export function progressPercent(current: number, target: number) {
-  if (target <= 0) {
+export function progressPercent(current: number, target: number, baseline = 0, direction = "INCREASE") {
+  if (![current, target, baseline].every(Number.isFinite) || (direction === "DECREASE" ? baseline <= target : baseline >= target)) {
     return 0;
   }
-  return Math.max(0, Math.min(100, (current / target) * 100));
+  return Math.max(0, Math.min(100, ((current - baseline) / (target - baseline)) * 100));
 }
 
 export function average(values: number[]) {
