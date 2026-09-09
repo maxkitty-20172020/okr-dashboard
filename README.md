@@ -19,6 +19,19 @@ npm run dev
 
 SQLite 默认位于 `prisma/dev.db`。升级前应使用 SQLite backup 方式备份，运行期间不要仅复制主文件而遗漏 WAL。代码提交到 Git 不会同步数据库。
 
+## 周期、WBS、RACI 与 Check-in
+
+本版先落地数据模型，供后续 OKR + WBS 排期、Check-in 和老板下钻使用。
+
+- **Period**：周 / 月 / 季树（Week→Month→Quarter）。季度标签与原 `cycle` 字符串一致（如 `2026-Q3`），月份为 `2026-09`，周为 ISO 周标签（如 `2026-W37`），日历与 `lib/week.ts` 对齐，业务时区仍为 Asia/Shanghai。`Objective.cycle` 保留兼容，同时回填 `periodId`。
+- **WBS**：`WorkPackage` / `Deliverable` 可挂到月或周；跨周期任务只改 `schedulePeriodId` / `dueAt`，不会因此归档或删除。
+- **RACI**：与账号读写角色（`User.role` 的 BOSS / MANAGER）分开。v1 每个对象最多一名 A、一名 R；C / I 可多人。存量任务回填为负责人同时担任 R 和 A，有效协作者为 C。
+- **Check-in**：按周期 + 范围汇报。没有对应行即为「未汇报」。`SUBMITTED` 为提交内容，`NO_CHANGE` 为确认暂无变化。任务进展审计仍用 `TaskUpdate`。
+
+例行任务可以不挂 `keyResultId`：计入任务完成率，不计入 KR 达成率。两种比率分开统计。
+
+`TaskCollaborator` / `TaskMilestone` 这一版保留；协作者交付文案会复制一份到 `Deliverable`，原协作行不删除。
+
 ## 初次体验
 
 仅空数据库可以初始化演示数据：
@@ -65,4 +78,4 @@ npm run lint
 npm run build
 ```
 
-测试使用独立临时 SQLite 数据库，覆盖迁移保留、跨周任务、多人协作、老板写入拦截、跟进确认、并发版本冲突、日期校验、归档恢复及降低类指标。
+测试使用独立临时 SQLite 数据库，覆盖迁移保留、跨周任务、多人协作、老板写入拦截、跟进确认、并发版本冲突、日期校验、归档恢复、降低类指标，以及 Period 树、目标周期回填、RACI 默认值、Check-in 未汇报和任务完成率 / KR 达成率。

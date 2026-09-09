@@ -38,6 +38,43 @@ enum TaskHealth {
   AT_RISK
 }
 
+enum PeriodKind {
+  WEEK
+  MONTH
+  QUARTER
+}
+
+enum WorkPackageStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum RaciSubjectType {
+  TASK
+  WORK_PACKAGE
+}
+
+enum RaciRole {
+  R
+  A
+  C
+  I
+}
+
+enum CheckInScopeType {
+  TASK
+  KEY_RESULT
+  OBJECTIVE
+  DEPT
+}
+
+enum CheckInStatus {
+  SUBMITTED
+  NO_CHANGE
+}
+
 model User {
   id           String       @id @default(cuid())
   name         String
@@ -48,7 +85,29 @@ model User {
   tasks        Task[]
   collaborations TaskCollaborator[]
   taskUpdates  TaskUpdate[]
+  raciAssignments RaciAssignment[]
+  checkIns     CheckIn[]
+  deliverables Deliverable[]
   createdAt    DateTime     @default(now())
+}
+
+model Period {
+  id        String     @id @default(cuid())
+  kind      PeriodKind
+  label     String
+  startAt   DateTime
+  endAt     DateTime
+  parentId  String?
+  parent    Period?    @relation("PeriodTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Period[]   @relation("PeriodTree")
+  createdAt DateTime   @default(now())
+  objectives Objective[]
+  keyResults KeyResult[]
+  scheduledTasks Task[] @relation("TaskSchedulePeriod")
+  workPackages WorkPackage[]
+  checkIns  CheckIn[]
+
+  @@unique([kind, label])
 }
 
 model Objective {
@@ -56,6 +115,8 @@ model Objective {
   title       String
   description String      @default("")
   cycle       String
+  periodId    String?
+  period      Period?     @relation(fields: [periodId], references: [id], onDelete: SetNull)
   ownerId     String
   owner       User        @relation(fields: [ownerId], references: [id])
   keyResults  KeyResult[]
@@ -73,7 +134,10 @@ model KeyResult {
   unit         String       @default("%")
   objectiveId  String
   objective    Objective    @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  periodId     String?
+  period       Period?      @relation(fields: [periodId], references: [id], onDelete: SetNull)
   tasks        Task[]
+  workPackages WorkPackage[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
@@ -102,11 +166,15 @@ model Task {
   owner       User       @relation(fields: [ownerId], references: [id])
   keyResultId String?
   keyResult   KeyResult? @relation(fields: [keyResultId], references: [id], onDelete: SetNull)
+  schedulePeriodId String?
+  schedulePeriod Period? @relation("TaskSchedulePeriod", fields: [schedulePeriodId], references: [id], onDelete: SetNull)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   collaborators TaskCollaborator[]
   updates TaskUpdate[]
   milestones TaskMilestone[]
+  workPackages WorkPackage[]
+  deliverables Deliverable[]
 
   @@index([archivedAt, status])
   @@index([ownerId, nextFollowUpAt])
@@ -149,4 +217,71 @@ model TaskUpdate {
   snapshot String @default("{}")
   createdAt DateTime @default(now())
   @@index([taskId, createdAt])
+}
+
+model WorkPackage {
+  id          String            @id @default(cuid())
+  title       String
+  parentId    String?
+  parent      WorkPackage?      @relation("WorkPackageTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    WorkPackage[]     @relation("WorkPackageTree")
+  taskId      String?
+  task        Task?             @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  keyResultId String?
+  keyResult   KeyResult?        @relation(fields: [keyResultId], references: [id], onDelete: SetNull)
+  periodId    String?
+  period      Period?           @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  dueAt       DateTime?
+  status      WorkPackageStatus @default(TODO)
+  doneAt      DateTime?
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  deliverables Deliverable[]
+}
+
+model Deliverable {
+  id            String       @id @default(cuid())
+  workPackageId String?
+  workPackage   WorkPackage? @relation(fields: [workPackageId], references: [id], onDelete: SetNull)
+  taskId        String?
+  task          Task?        @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  title         String
+  ownerUserId   String?
+  owner         User?        @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  dueAt         DateTime?
+  done          Boolean      @default(false)
+  note          String       @default("")
+  active        Boolean      @default(true)
+  updatedAt     DateTime     @updatedAt
+}
+
+model RaciAssignment {
+  id          String          @id @default(cuid())
+  subjectType RaciSubjectType
+  subjectId   String
+  role        RaciRole
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+
+  @@unique([subjectType, subjectId, role, userId])
+  @@index([subjectType, subjectId])
+}
+
+model CheckIn {
+  id         String           @id @default(cuid())
+  periodId   String
+  period     Period           @relation(fields: [periodId], references: [id])
+  scopeType  CheckInScopeType
+  scopeId    String?
+  authorId   String
+  author     User             @relation(fields: [authorId], references: [id])
+  status     CheckInStatus
+  body       String
+  metricNote String?
+  blocker    String?
+  nextStep   String?
+  createdAt  DateTime         @default(now())
+
+  @@index([periodId, scopeType, scopeId])
 }

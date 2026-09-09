@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createSession, destroySession, requireSession, requireWriter } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createTask, mutateTask, TaskError, type ActionState } from "@/lib/task-service";
+import { resolveQuarterPeriod } from "@/lib/period";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -64,8 +65,9 @@ export async function createObjectiveAction(formData: FormData) {
     return;
   }
 
+  const period = await resolveQuarterPeriod(prisma, cycle);
   await prisma.objective.create({
-    data: { title, description, cycle, ownerId },
+    data: { title, description, cycle, ownerId, periodId: period.id },
   });
   revalidatePath("/", "layout");
 }
@@ -82,9 +84,10 @@ export async function updateObjectiveAction(formData: FormData) {
     return;
   }
 
+  const period = await resolveQuarterPeriod(prisma, cycle);
   await prisma.objective.update({
     where: { id },
-    data: { title, description, cycle, ownerId },
+    data: { title, description, cycle, ownerId, periodId: period.id },
   });
   revalidatePath("/", "layout");
 }
