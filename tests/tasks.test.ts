@@ -36,7 +36,9 @@ async function progress(id: string, extra: Record<string, string | number> = {})
 
 before(async () => {
   const initial = readFileSync("prisma/migrations/20260905063634_init/migration.sql", "utf8");
-  const migration = readFileSync("prisma/migrations/20260905110000_persistent_tasks/migration.sql", "utf8") + readFileSync("prisma/migrations/20260905123000_normalize_history_dates/migration.sql", "utf8");
+  const migration = readFileSync("prisma/migrations/20260905110000_persistent_tasks/migration.sql", "utf8")
+    + readFileSync("prisma/migrations/20260905123000_normalize_history_dates/migration.sql", "utf8")
+    + readFileSync("prisma/migrations/20260909080000_period_wbs_raci_checkin/migration.sql", "utf8");
   execFileSync("python3", ["-c", `import sqlite3,sys,json
 p=json.loads(sys.stdin.read())
 c=sqlite3.connect(sys.argv[1]); c.executescript(p['initial'])
@@ -44,6 +46,7 @@ for u in p['actors']:
  c.execute('INSERT INTO User (id,name,email,passwordHash,role) VALUES (?,?,?,?,?)',(u['id'],u['name'],u['id']+'@test.local','unused',u['role']))
 c.execute('INSERT INTO WeeklyTask (id,title,status,weekStart,ownerId,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?)',('legacy','跨周历史任务','IN_PROGRESS',1704067200000,'owner',1704067200000,1704067200000))
 c.execute('INSERT INTO WeeklyTask (id,title,status,weekStart,ownerId,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?)',('legacy-done','历史完成任务','DONE',1704067200000,'boss',1704067200000,1704153600000))
+c.execute('INSERT INTO Objective (id,title,description,cycle,ownerId,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?)',('obj-q1','历史目标','','2024-Q1','owner',1704067200000,1704067200000))
 c.commit(); c.executescript(p['migration']); assert not c.execute('PRAGMA foreign_key_check').fetchall(); c.close()`, file], { input: JSON.stringify({ initial, migration, actors: Object.values(actors) }) });
 });
 after(async () => { await db.$disconnect(); rmSync(folder, { recursive: true, force: true }); });
@@ -58,6 +61,12 @@ test("迁移保留跨周任务、历史负责人及完成记录", async () => {
   const done = rows.find(t => t.id === "legacy-done")!;
   assert.equal(done.ownerId, "boss"); assert.equal(done.completedAt?.getTime(), 1704153600000);
   assert.equal(await db.taskUpdate.count(), 2);
+  const raci = await db.raciAssignment.findMany({ where: { subjectType: "TASK", subjectId: "legacy" } });
+  assert.deepEqual(raci.map(row => `${row.role}:${row.userId}`).sort(), ["A:owner", "R:owner"]);
+  const objective = await db.objective.findUniqueOrThrow({ where: { id: "obj-q1" }, include: { period: true } });
+  assert.equal(objective.cycle, "2024-Q1");
+  assert.equal(objective.period?.kind, "QUARTER");
+  assert.equal(objective.period?.label, "2024-Q1");
 });
 
 test("同一事项多人协作，个人交付不完成整体任务", async () => {
