@@ -12,7 +12,7 @@ export type Member = { id: string; name: string; role: string };
 export const statusLabels: Record<TaskStatus, string> = { TODO: "未开始", IN_PROGRESS: "进行中", WAITING: "等待中", BLOCKED: "受阻", DONE: "已完成", CANCELLED: "已取消" };
 export const areaLabels = { BUSINESS: "业务管理", PEOPLE: "团队管理", INVENTORY: "库存管理", OTHER: "其他事项" };
 export const kindLabels = { SHORT_TERM: "短期任务", LONG_TERM: "长期事项" };
-export const updateLabels: Record<string, string> = { CREATED: "创建任务", MIGRATED: "历史迁入", PROGRESS: "更新进展", NO_CHANGE: "确认暂无变化", DETAILS: "调整任务", COLLABORATION: "协作记录", MILESTONE: "节点记录", ARCHIVED: "归档任务", RESTORED: "恢复任务" };
+export const updateLabels: Record<string, string> = { CREATED: "创建任务", MIGRATED: "历史迁入", PROGRESS: "更新进展", NO_CHANGE: "确认暂无变化", CHECKIN: "周期汇报", DETAILS: "调整任务", COLLABORATION: "协作记录", MILESTONE: "节点记录", ARCHIVED: "归档任务", RESTORED: "恢复任务" };
 
 // Business dates are UTC-midnight date-only values. Day boundaries are always Shanghai time.
 export function today(now = new Date()) {

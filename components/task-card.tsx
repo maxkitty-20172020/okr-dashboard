@@ -14,11 +14,11 @@ export function TaskBadges({ task }: { task: TaskRow }) {
     {task.priority === 2 && <span className="badge accent">重点</span>}
   </div>;
 }
-export function TaskCard({ task, userId, compact = false }: { task: TaskRow; userId?: string; compact?: boolean }) {
+export function TaskCard({ task, userId, compact = false, query = "" }: { task: TaskRow; userId?: string; compact?: boolean; query?: string }) {
   const contribution = task.collaborators.find(c => c.userId === userId);
   return <article className={`task-card ${compact ? "compact" : ""}`}>
     <div className="task-kicker"><span>{areaLabels[task.area]}{task.scope ? ` · ${task.scope}` : ""}</span><span>{task.owner.name} · 主责</span></div>
-    <Link href={`/tasks/${task.id}`} className="task-title">{task.title}</Link>
+    <Link href={`/tasks/${task.id}${query}`} className="task-title">{task.title}</Link>
     <TaskBadges task={task} />
     <p className="task-progress">{task.latestProgress || "尚未记录进展"}</p>
     {!closed(task) && <p className="task-next"><span>下一步</span>{task.nextAction || "待主负责人补充"}</p>}
