@@ -46,10 +46,22 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   ]);
   const keyResults = objectives.flatMap(objective => objective.keyResults);
   const expected = expectedTargets(search.kind, tasks, objectives, search);
+  const extraOwned = [
+    ...expectedTargets("MONTH", tasks, objectives, search),
+    ...expectedTargets("QUARTER", tasks, objectives, search),
+    ...expectedTargets("WEEK", tasks, objectives, search),
+  ].filter(item => !expected.some(row => row.scopeType === item.scopeType && row.scopeId === item.scopeId));
   const missingIds = new Set(await unreportedScopeIds(prisma, tree.selected.id, expectedCheckInScope(search.kind), expected.map(item => item.scopeId)));
   const unreported = expected.filter(item => missingIds.has(item.scopeId));
   const writableFlags = await Promise.all(unreported.map(item => canAuthorCheckIn(prisma, user, item.scopeType, item.scopeId)));
-  const myUnreported = unreported.filter((_, index) => writableFlags[index]);
+  const extraWritable = await Promise.all(extraOwned.map(async item => {
+    const state = checkInReportState(checkIns.get(scopeKey(item.scopeType, item.scopeId)));
+    return state === "UNREPORTED" && await canAuthorCheckIn(prisma, user, item.scopeType, item.scopeId);
+  }));
+  const myUnreported = [
+    ...unreported.filter((_, index) => writableFlags[index]),
+    ...extraOwned.filter((_, index) => extraWritable[index]),
+  ];
   const otherUnreported = unreported.filter((_, index) => !writableFlags[index]);
   const reportStateForTask = (task: (typeof tasks)[number]) => {
     if (expectedCheckInScope(search.kind) === "TASK") return checkInReportState(checkIns.get(scopeKey("TASK", task.id)));
