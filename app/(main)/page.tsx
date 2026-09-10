@@ -24,7 +24,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const recentDone = allTasks.filter(t => t.status === "DONE" && t.completedAt && t.completedAt >= since);
   const boss = user.role === "BOSS";
   return <div className="page">
-    <header className="page-heading"><div><p className="eyebrow">{boss ? "部门全貌" : "我的工作台"} · {dateLabel(today())}</p><h1>{boss ? "当前重点，责任清楚" : `${user.name}，今天跟进这些事`}</h1><p className="muted">{boss ? "查看重点、分工与风险。所有未结束任务持续保留。" : "集中处理到期跟进、主责任务和协作交付。"}</p></div>{boss ? <span className="readonly-label">老板账号 · 只读</span> : <Link className="button" href="/tasks/new">＋ 新建任务</Link>}</header>
+    <header className="page-heading"><div><p className="eyebrow">{boss ? "部门全貌" : "我的工作台"} · {dateLabel(today())}</p><h1>{boss ? "当前重点，责任清楚" : `${user.name}，今天跟进这些事`}</h1><p className="muted">{boss ? "查看重点、分工与风险。周期汇报、未汇报和下钻在「周期汇报」。" : "集中处理到期跟进、主责任务和协作交付。本周 / 本月 / 本季汇报在「周期汇报」。"}</p></div><div className="heading-actions">{boss ? <span className="readonly-label">老板账号 · 只读</span> : <Link className="button" href="/tasks/new">＋ 新建任务</Link>}<Link className="button secondary" href="/overview">周期汇报</Link></div></header>
     {params.error === "read-only" && <p className="form-error" role="alert">老板账号仅可查看，数据未修改。</p>}
     <section className="stats-grid" aria-label="当前工作概况">
       <Link className="stat" href={boss ? "/tasks" : "/tasks?relation=owned"}><span>{boss ? "未结束任务" : "我主责的"}</span><strong>{boss ? active.length : owned.length}</strong><small>跨周持续跟进</small></Link>

@@ -1,4 +1,5 @@
 import type { KeyResult, Objective, User } from "@prisma/client";
+import Link from "next/link";
 import {
   createKeyResultAction,
   createObjectiveAction,
@@ -29,7 +30,7 @@ export function OkrBoard({
   readOnly?: boolean;
 }) {
 
-  if (readOnly) return <div className="page"><header className="page-heading"><div><p className="eyebrow">经营结果</p><h1>目标与结果</h1><p className="muted">查看目标、当前值与关键结果，老板账号无需填写。</p></div><span className="readonly-label">老板账号 · 只读</span></header><div className="space-y-4">{objectives.map(o => <article key={o.id} className="surface detail-section"><p className="muted small">{o.cycle} · {o.owner.name}</p><h2>{o.title}</h2><p className="section-help">{o.description}</p><div className="space-y-4">{o.keyResults.map(kr => <div key={kr.id}><div className="section-heading"><span>{kr.title}</span><span className="muted small">{kr.direction === "DECREASE" ? "降低" : "提升"} · 当前 {kr.currentValue} / 目标 {kr.targetValue} {kr.unit}</span></div><ProgressBar value={progressPercent(kr.currentValue, kr.targetValue, kr.baselineValue, kr.direction)} /><p className="muted small">起点 {kr.baselineValue} {kr.unit}</p></div>)}</div></article>)}{!objectives.length && <div className="empty-state">还没有设置目标与关键结果。</div>}</div></div>;
+  if (readOnly) return <div className="page"><header className="page-heading"><div><p className="eyebrow">经营结果</p><h1>目标与结果</h1><p className="muted">查看目标、当前值与关键结果，老板账号无需填写。可下钻到任务、交付物和 Check-in。</p></div><span className="readonly-label">老板账号 · 只读</span></header><div className="space-y-4">{objectives.map(o => <article key={o.id} className="surface detail-section"><p className="muted small">{o.cycle} · {o.owner.name}</p><h2><Link href={`/okrs/${o.id}`}>{o.title}</Link></h2><p className="section-help">{o.description}</p><div className="space-y-4">{o.keyResults.map(kr => <div key={kr.id}><div className="section-heading"><span>{kr.title}</span><span className="muted small">{kr.direction === "DECREASE" ? "降低" : "提升"} · 当前 {kr.currentValue} / 目标 {kr.targetValue} {kr.unit}</span></div><ProgressBar value={progressPercent(kr.currentValue, kr.targetValue, kr.baselineValue, kr.direction)} /><p className="muted small">起点 {kr.baselineValue} {kr.unit}</p></div>)}</div><Link className="text-link" href={`/okrs/${o.id}`}>查看任务与汇报 →</Link></article>)}{!objectives.length && <div className="empty-state">还没有设置目标与关键结果。</div>}</div></div>;
   return (
     <div className="space-y-8">
       <header>
@@ -90,6 +91,7 @@ export function OkrBoard({
       <div className="space-y-5">
         {objectives.map((objective) => (
           <article key={objective.id} className="rounded-2xl border border-line bg-card p-5">
+            <p className="mb-3 text-sm"><Link className="text-link" href={`/okrs/${objective.id}`}>查看任务、交付物与汇报 →</Link></p>
             <form action={updateObjectiveAction} className="grid gap-3 md:grid-cols-2">
               <input type="hidden" name="id" value={objective.id} />
               <label className="md:col-span-2">
