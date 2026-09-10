@@ -8,7 +8,7 @@ export default async function LoginPage() {
   const users = await prisma.user.findMany({
     select: { name: true, email: true, role: true },
   });
-  const accountOrder = ["okr", "okr1", "okr2", "okr3"];
+  const accountOrder = ["yjc", "cjy", "lgq", "zfc"];
   users.sort(
     (left, right) =>
       accountOrder.indexOf(left.email.split("@")[0] ?? "") -
