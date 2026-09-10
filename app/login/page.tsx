@@ -1,20 +1,8 @@
 import { LoginForm } from "@/components/login-form";
-import { prisma } from "@/lib/prisma";
-import { roleLabel } from "@/lib/okr";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
-  const users = await prisma.user.findMany({
-    select: { name: true, email: true, role: true },
-  });
-  const accountOrder = ["yjc", "cjy", "lgq", "zfc"];
-  users.sort(
-    (left, right) =>
-      accountOrder.indexOf(left.email.split("@")[0] ?? "") -
-      accountOrder.indexOf(right.email.split("@")[0] ?? ""),
-  );
-
+export default function LoginPage() {
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-12">
       <div className="grid w-full max-w-5xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -30,12 +18,7 @@ export default async function LoginPage() {
         <div className="rounded-2xl border border-line bg-card p-6 shadow-[0_20px_50px_rgba(22,32,43,0.08)] sm:p-8">
           <h2 className="font-serif text-2xl italic">登录</h2>
           <p className="mt-1 mb-6 text-sm text-muted">成员记录进展，老板查看全貌。</p>
-          <LoginForm
-            accounts={users.map((user) => ({
-              ...user,
-              role: roleLabel(user.role),
-            }))}
-          />
+          <LoginForm />
         </div>
       </div>
     </div>
