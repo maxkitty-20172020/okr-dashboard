@@ -24,7 +24,7 @@ test.afterAll(async () => { await db.$disconnect(); });
 test("okr2 直达不可见事项显示不存在，全部事项和搜索不泄露标题", async ({ page }) => {
   await login(page, "okr2");
   await page.goto(`/tasks/${hiddenId}`);
-  await expect(page.locator("h1")).toHaveText("没有找到这条任务");
+  await expect(page.locator("h1")).toHaveText("没有找到这条事项");
   await expect(page.locator("main")).not.toContainText("可见权限测试：李明独有");
   await page.goto("/tasks");
   await expect(page.locator(`a[href^="/tasks/${hiddenId}"]`)).toHaveCount(0);
@@ -57,7 +57,7 @@ test("老板移交后新负责人可见可更新，非创建者原负责人失�
         await member.locator("#update").getByRole("button", { name: "保存进展", exact: true }).click();
         await expect(member.locator(".summary-grid")).toContainText("王芳已接手并推进");
       } else {
-        await expect(member.locator("h1")).toHaveText("没有找到这条任务");
+        await expect(member.locator("h1")).toHaveText("没有找到这条事项");
         await member.goto("/tasks");
         await expect(member.locator(`a[href^="/tasks/${transferId}"]`)).toHaveCount(0);
       }

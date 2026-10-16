@@ -110,7 +110,7 @@ test("未结束任务按数量阻止停用，完成和取消任务不阻止，�
   for (const status of ["TODO", "IN_PROGRESS", "WAITING", "BLOCKED", "DONE", "CANCELLED"] as const) {
     await db.task.create({ data: { title: status, status, ownerId: manager.id } });
   }
-  await assert.rejects(disableMember(db, boss, manager.id), memberError(/请先移交 4 项未结束任务/));
+  await assert.rejects(disableMember(db, boss, manager.id), memberError(/请先移交 4 项未结束事项/));
   await db.task.updateMany({ where: { status: { notIn: ["DONE", "CANCELLED"] } }, data: { ownerId: "other" } });
   await disableMember(db, boss, manager.id);
   assert.equal(await db.task.count(), 6);

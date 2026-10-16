@@ -1,0 +1,21 @@
+
+> okr-dashboard@0.1.0 test:e2e
+> playwright test
+
+[WebServer] (node:83030) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:83031) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 
+[WebServer] -----
+[WebServer] FATAL: An unexpected Turbopack error occurred. A panic log has been written to /var/folders/06/x68m12xx4rz51wzdvddgzbch0000gn/T/next-panic-287cd5e6bc2a8efa46f025ad6e88da1e.log.
+[WebServer] 
+[WebServer] To help make Turbopack better, report this error by ttps://bugs.nextjs.org/search?category=turbopack-error-report&title=Turbopack%20Error%3A%20unable%20to%20start%20FSEvent%20stream&body=Turbopack%20version%3A%20%602864b177%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0Aunable%20to%20start%20FSEvent%20stream%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace\clicking here.;;\
+[WebServer] -----
+[WebServer] 
+[WebServer] Error [TurbopackInternalError]: unable to start FSEvent stream
+[WebServer]     at <unknown> (TurbopackInternalError: unable to start FSEvent stream) {
+[WebServer]   location: undefined
+[WebServer] }
+Error: Process from config.webServer was not able to start. Exit code: 1
+

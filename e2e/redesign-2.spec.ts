@@ -54,11 +54,11 @@ test("周视图按成员折叠分组，一键暂无变化后待写数量减少",
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("每周进展");
   const group = page.locator(".pending-group").filter({ has: page.locator(`a[href^="/tasks/${id}?"]`) });
   await expect(group.locator("summary")).toContainText("李明");
-  const card = group.locator(".ui-task-card").filter({ hasText: title });
+  const card = group.locator(".week-item").filter({ hasText: title });
   await expect(card).toBeVisible();
   await group.locator("summary").click(); await expect(card).toBeHidden();
   await group.locator("summary").click(); await expect(card).toBeVisible();
-  const counter = page.locator('.stats-grid a[href*="exception=unreported"] strong');
+  const counter = page.locator('.exception-chips a[href*="exception=unreported"] strong');
   const before = Number(await counter.textContent());
   const band = page.getByRole("region", { name: "本周进展", exact: true });
   const bandBefore = await band.locator(".week-numbers").textContent();
@@ -81,14 +81,15 @@ test("老板在新成员卡片布局中新增成员，操作默认折叠", async
   await form.locator('[name="password"]').fill("Temporary123");
   await expect(form.getByRole("radio", { name: "填报成员", exact: true })).toBeChecked();
   await form.getByRole("button", { name: "新增成员", exact: true }).click();
-  const card = page.getByRole("article", { name: `成员 ${account}@okr.local`, exact: true });
+  const card = page.getByRole("article", { name: `成员 ${account}`, exact: true });
   await expect(card).toContainText("第二批测试成员");
-  await expect(card).toContainText("已启用");
+  await expect(card.locator(".status-badge").filter({ hasText: /^已启用$|^已停用$/ })).toHaveCount(0);
   await expect(card).toContainText("填报成员");
   await expect(card).toContainText("主责未结束 0 项");
   await expect(card.locator(".member-actions")).not.toHaveAttribute("open");
   await card.getByLabel("管理 第二批测试成员", { exact: true }).click();
   await expect(card.getByRole("button", { name: "保存姓名和角色" })).toBeVisible();
+  await expect(card.getByRole("button", { name: "停用成员", exact: true })).toBeVisible();
 });
 for (const account of ["okr1", "okr"]) {
   for (const path of ["/tasks", "/overview", ...(account === "okr" ? ["/members"] : []), "/account"]) {

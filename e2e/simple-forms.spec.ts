@@ -6,7 +6,7 @@ async function login(page: Page) {
   await page.locator('[name="password"]').fill("okr12345");
   await page.getByRole("button", { name: "进入看板" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator(".signed-user")).toContainText("李明");
+  await expect(page.locator(".user-menu > summary")).toContainText("李明");
 }
 async function create(page: Page) {
   await page.goto("/tasks/new");
@@ -20,7 +20,7 @@ async function create(page: Page) {
   return { title, id: new URL(page.url()).pathname.split("/").pop()! };
 }
 function pendingCount(page: Page) {
-  return page.locator('.stats-grid a[href*="exception=unreported"] strong');
+  return page.locator('.exception-chips a[href*="exception=unreported"] strong');
 }
 
 test.beforeEach(async ({ page }) => { await login(page); });
@@ -52,14 +52,14 @@ test("卡住了不写原因无法保存，补写后保存且周期待写数量�
   await expect(page.locator(".summary-grid")).toContainText("需要采购联系备选供应商");
   await page.goto("/overview?kind=WEEK");
   await expect(pendingCount(page)).toHaveText(String(countBefore - 1));
-  await expect(page.locator(`.unreported-list article:has(a[href^="/tasks/${id}"])`)).toHaveCount(0);
+  await expect(page.locator(`.week-item:has(a[href^="/tasks/${id}"])`)).toHaveCount(0);
 });
 
 test("周期总览一键暂无变化记录本周进展并移除待写项", async ({ page }) => {
   const { id } = await create(page);
   await page.goto("/overview?kind=WEEK");
   const countBefore = Number(await pendingCount(page).textContent());
-  const card = page.locator(`.unreported-list article:has(a[href^="/tasks/${id}"])`);
+  const card = page.locator(`.week-item:has(a[href^="/tasks/${id}"])`);
   await expect(card.getByRole("link", { name: "更新进展", exact: true })).toHaveAttribute("href", new RegExp(`/tasks/${id}.*#update$`));
   await card.getByRole("button", { name: "暂无变化", exact: true }).click();
   await expect(card).toHaveCount(0);

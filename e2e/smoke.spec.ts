@@ -22,7 +22,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
 
       await expect(page).not.toHaveURL(/\/login/);
       // 验证顶栏用户名与身份
-      const userText = page.locator(".signed-user");
+      const userText = page.locator(".user-menu > summary");
       await expect(userText).toContainText(acc.name);
       await expect(userText).toContainText(acc.roleText);
 
@@ -108,7 +108,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
     await page.goto("/overview?kind=WEEK");
 
     // 获取当前待我汇报的项
-    const unreportedCards = page.locator(".pending-group .ui-task-card:has(button)");
+    const unreportedCards = page.locator(".pending-group .week-item:has(button)");
     const countBefore = await unreportedCards.count();
 
     if (countBefore > 0) {
@@ -120,7 +120,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
       await page.waitForTimeout(1000);
 
       // 验证未汇报项数量减少或已不再包含刚提交的表单
-      const countAfter = await page.locator(".pending-group .ui-task-card:has(button)").count();
+      const countAfter = await page.locator(".pending-group .week-item:has(button)").count();
       expect(countAfter).toBeLessThan(countBefore);
     }
   });
@@ -137,7 +137,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
     await page.goto("/overview?kind=WEEK&exception=unreported");
 
     // 2) 点击任务卡片中的任务标题进入详情（排除 /tasks/new 和导航链接）
-    const taskLink = page.locator('article a[href^="/tasks/"]').first();
+    const taskLink = page.locator('.week-band a[href^="/tasks/"]').first();
     const href = await taskLink.getAttribute("href");
     expect(href).toBeTruthy();
     expect(href).toContain("kind=WEEK");
@@ -213,10 +213,10 @@ test.describe("自动化冒烟测试与权限边界", () => {
       await page.click('a:has-text("验证核心产品主图方案")');
 
       // 移交给王芳
-      await page.click("#details");
+      await page.click("#details > summary");
       await page.locator("#details").getByRole("radio", { name: "王芳", exact: true }).check();
       await page.locator(".transfer-confirmation input").check();
-      await page.click('#details button:has-text("保存任务资料")');
+      await page.click('#details button:has-text("保存事项资料")');
       await page.waitForTimeout(1000);
 
       // 预期：原主责李明已不再是主责，不应再看到或能够提交 #checkin 汇报表单

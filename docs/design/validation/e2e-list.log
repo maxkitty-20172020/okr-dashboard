@@ -1,0 +1,41 @@
+Listing tests:
+  [chromium] › design-fixes.spec.ts:28:5 › 账号菜单是可聚焦按钮，三项带图标，能展开、收起并退出
+  [chromium] › design-fixes.spec.ts:46:5 › 折叠操作入口统一按钮角色，键盘可展开目标表单
+  [chromium] › design-fixes.spec.ts:61:7 › 周月季精简及日常周期、短账号显示 okr1
+  [chromium] › design-fixes.spec.ts:61:7 › 周月季精简及日常周期、短账号显示 okr
+  [chromium] › design-fixes.spec.ts:84:5 › QA-03 风险、卡住与取消在必填框下方提示，阻止提交后显示 Field 错误
+  [chromium] › design-fixes.spec.ts:101:5 › QA-04 顶部成员胶囊关闭只去掉 person
+  [chromium] › design-fixes.spec.ts:114:7 › 390px 所有可见链接按钮至少44px okr1
+  [chromium] › design-fixes.spec.ts:114:7 › 390px 所有可见链接按钮至少44px okr
+  [chromium] › design-fixes.spec.ts:143:7 › 协作者与老板详情无重复交付、周期卡和快照 okr1
+  [chromium] › design-fixes.spec.ts:143:7 › 协作者与老板详情无重复交付、周期卡和快照 okr
+  [chromium] › members.spec.ts:23:5 › 老板建成员 → 强制改密 → 工作台 → 重置会话失效 → 停用不能登录，成员无管理权限
+  [chromium] › redesign-2.spec.ts:19:5 › 全部事项筛选胶囊、数量、查询参数与清除筛选
+  [chromium] › redesign-2.spec.ts:50:5 › 周视图按成员折叠分组，一键暂无变化后待写数量减少
+  [chromium] › redesign-2.spec.ts:72:5 › 老板在新成员卡片布局中新增成员，操作默认折叠
+  [chromium] › redesign-2.spec.ts:96:9 › 390px okr1 /tasks 无横向滚动
+  [chromium] › redesign-2.spec.ts:96:9 › 390px okr1 /overview 无横向滚动
+  [chromium] › redesign-2.spec.ts:96:9 › 390px okr1 /account 无横向滚动
+  [chromium] › redesign-2.spec.ts:96:9 › 390px okr /tasks 无横向滚动
+  [chromium] › redesign-2.spec.ts:96:9 › 390px okr /overview 无横向滚动
+  [chromium] › redesign-2.spec.ts:96:9 › 390px okr /members 无横向滚动
+  [chromium] › redesign-2.spec.ts:96:9 › 390px okr /account 无横向滚动
+  [chromium] › redesign.spec.ts:21:7 › 工作台成员结论、三栏、本周进展
+  [chromium] › redesign.spec.ts:21:7 › 工作台老板结论、三栏、本周进展
+  [chromium] › redesign.spec.ts:33:5 › 新建事项只答三题，详情卡住了必填原因并保存
+  [chromium] › redesign.spec.ts:48:7 › 390px okr1底部导航和页面无横向滚动
+  [chromium] › redesign.spec.ts:48:7 › 390px okr底部导航和页面无横向滚动
+  [chromium] › redesign.spec.ts:74:5 › 原生 radio：三题可提交且进展可选卡住了
+  [chromium] › simple-forms.spec.ts:28:5 › 只填三个问题即可创建事项，选填默认折叠且当前用户负责
+  [chromium] › simple-forms.spec.ts:38:5 › 卡住了不写原因无法保存，补写后保存且周期待写数量减少
+  [chromium] › simple-forms.spec.ts:58:5 › 周期总览一键暂无变化记录本周进展并移除待写项
+  [chromium] › smoke.spec.ts:10:7 › 自动化冒烟测试与权限边界 › 三种账号登录与退出 (老板 okr、成员 okr1、okr2)
+  [chromium] › smoke.spec.ts:37:7 › 自动化冒烟测试与权限边界 › 老板账号只读且写操作被服务端拒绝
+  [chromium] › smoke.spec.ts:63:7 › 自动化冒烟测试与权限边界 › 成员创建任务并更新进展
+  [chromium] › smoke.spec.ts:101:7 › 自动化冒烟测试与权限边界 › 提交 Check-in 后「未汇报」数量减少
+  [chromium] › smoke.spec.ts:129:7 › 自动化冒烟测试与权限边界 › 从任务详情返回总览时保留周期与筛选参数
+  [chromium] › smoke.spec.ts:165:7 › 自动化冒烟测试与权限边界 › 新建不填完成期限的任务，应出现在本周总览的待我汇报中 (引用: UX-01)
+  [chromium] › smoke.spec.ts:199:7 › 自动化冒烟测试与权限边界 › 移交任务给他人后，原负责人不应再拥有该任务的 Check-in 提交权限 (引用: UX-02)
+  [chromium] › visibility.spec.ts:24:5 › okr2 直达不可见事项显示不存在，全部事项和搜索不泄露标题
+  [chromium] › visibility.spec.ts:37:5 › 老板移交后新负责人可见可更新，非创建者原负责人失去可见权
+Total: 39 tests in 7 files

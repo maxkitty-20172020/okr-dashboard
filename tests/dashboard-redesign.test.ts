@@ -21,11 +21,11 @@ test("§4.1 成员：今天跟进计入今天、已过、未设置，不含未�
 });
 test("§4.1 成员：有跟进及交付，取协作最早期限，额外显示余项", () => {
   const rows = [task("follow", { nextFollowUpAt: day }), delivery("无期限"), delivery("较晚", later), delivery("最早", day)];
-  assert.equal(dashboardHeadline(rows, me, now).text, "今天有 1 件事要跟进。王芳 在等你的「交付最早」，还有 2 项等你交付。");
-  assert.equal(dashboardHeadline([rows[0], rows[3]], me, now).text, "今天有 1 件事要跟进。王芳 在等你的「交付最早」。");
+  assert.equal(dashboardHeadline(rows, me, now).text, "今天有 1 件事要跟进。王芳在等你的「交付最早」，还有 2 项等你交付。");
+  assert.equal(dashboardHeadline([rows[0], rows[3]], me, now).text, "今天有 1 件事要跟进。王芳在等你的「交付最早」。");
 });
 test("§4.1 成员：无跟进但有交付，以及两者都无", () => {
-  assert.equal(dashboardHeadline([delivery("预测")], me, now).text, "今天没有到期的跟进，王芳 在等你的「交付预测」。");
+  assert.equal(dashboardHeadline([delivery("预测")], me, now).text, "今天没有到期的跟进，王芳在等你的「交付预测」。");
   assert.deepEqual(dashboardHeadline([task("future"), delivery("done", day, true)], me, now), { text: "今天没有要跟进的事。", supplement: "可以推进还没定期限的事项。" });
   assert.equal(dashboardHeadline([delivery("closed", day, false) ].map(t => ({ ...t, status: "DONE" as const })), me, now).text, "今天没有要跟进的事。");
 });

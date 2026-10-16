@@ -31,7 +31,7 @@ test("老板建成员 → 强制改密 → 工作台 → 重置会话失效 → 
   await create.locator('[name="login"]').fill(account);
   await create.locator('[name="password"]').fill("　Ｔｅｍｐ１２３４５　");
   await create.getByRole("button", { name: "新增成员" }).click();
-  const row = page.getByRole("article", { name: `成员 ${account}@okr.local`, exact: true });
+  const row = page.getByRole("article", { name: `成员 ${account}`, exact: true });
   await expect(row).toContainText("测试成员");
   const context = await browser.newContext({ baseURL: new URL(page.url()).origin });
   const member = await context.newPage();
@@ -45,7 +45,7 @@ test("老板建成员 → 强制改密 → 工作台 → 重置会话失效 → 
     await changePassword(member, "Temp12345", "MemberNew123");
     await member.getByRole("link", { name: "进入工作台", exact: true }).click();
     await expect(member).toHaveURL("/");
-    await expect(member.locator(".signed-user")).toContainText("测试成员");
+    await expect(member.locator(".user-menu > summary")).toContainText("测试成员");
     await expect(member.getByRole("link", { name: "成员", exact: true })).toHaveCount(0);
     await member.goto("/members");
     await expect(member).toHaveURL(/\/\?error=no-permission/);
@@ -66,7 +66,7 @@ test("老板建成员 → 强制改密 → 工作台 → 重置会话失效 → 
 
     await row.getByLabel("管理 测试成员", { exact: true }).click();
     await row.getByText("重置密码", { exact: true }).click();
-    const reset = row.getByRole("form", { name: `重置密码 ${account}@okr.local`, exact: true });
+    const reset = row.getByRole("form", { name: `重置密码 ${account}`, exact: true });
     await reset.locator('[name="password"]').fill("ResetTemp123");
     await reset.getByRole("button", { name: "设置临时密码" }).click();
     await expect(reset.getByRole("status")).toHaveText("已保存");
