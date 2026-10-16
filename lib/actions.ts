@@ -2,12 +2,14 @@
 
 import { compare } from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSession, destroySession, requireSession, requireWriter } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createTask, mutateTask, TaskError, type ActionState } from "@/lib/task-service";
 import { resolveQuarterPeriod } from "@/lib/period";
 import { CheckInError, submitCheckIn } from "@/lib/check-in";
+import { loginIp, loginLimiter } from "@/lib/login-limit";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -36,8 +38,14 @@ export async function loginAction(_prev: { error?: string } | null, formData: Fo
     return { error: "请输入账号和密码" };
   }
 
+  const requestHeaders = await headers();
+  const ip = loginIp(requestHeaders.get("x-real-ip"), requestHeaders.get("x-forwarded-for"));
+  const lockedError = { error: "登录失败次数过多，请 10 分钟后重试" };
+  if (loginLimiter.isLocked(email, ip)) return lockedError;
+
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await compare(password, user.passwordHash))) {
+    if (loginLimiter.recordFailure(email, ip)) return lockedError;
     return { error: "账号或密码不正确" };
   }
 
@@ -47,6 +55,7 @@ export async function loginAction(_prev: { error?: string } | null, formData: Fo
     email: user.email,
     role: user.role,
   });
+  loginLimiter.reset(email, ip);
   redirect("/");
 }
 
