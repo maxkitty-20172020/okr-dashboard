@@ -240,7 +240,7 @@ textarea { resize: vertical; }
 .lane-switch { display: none; }
 .ui-task-card { min-width: 0; overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
 .ui-task-card:hover { border-color: var(--line-strong); box-shadow: var(--card-hover-shadow); }
-.task-card-link { display: flex; flex-direction: column; gap: 10px; padding: 16px; color: var(--ink); border-radius: 14px; text-decoration: none; }
+.task-card-link { display: flex; flex-direction: column; align-items: stretch; text-align: left; gap: 10px; padding: 16px; color: var(--ink); border-radius: 14px; text-decoration: none; }
 .task-card-link h3 { font-size: 15px; font-weight: 700; }
 .task-card-link p { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 .task-card-link footer { margin-top: 2px; padding-top: 12px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
@@ -306,7 +306,6 @@ textarea { resize: vertical; }
 .account-links { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .milestone-checkbox { display: inline-grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--line-strong); border-radius: 4px; margin-right: 8px; }
 .milestone-checkbox.checked { background: var(--primary); color: white; border-color: var(--primary); }
-.task-fields > .edit-disclosure > summary::before { content: "＋ "; }
 .headline h1, .person-card, .week-item, .ui-notice { overflow-wrap: anywhere; }
 .summary-grid dt { color: var(--muted); }
 @media(max-width:719px) { .inline-details summary, .choice-chip, .milestone-list button { min-height: 44px; } }
@@ -355,3 +354,71 @@ textarea { resize: vertical; }
 
 .objective-card h2 > a, .goal-grid h3 > a, .collab-summary a, .unreported-row a { display: inline-flex; align-items: center; min-height: 44px; }
 .week-item > a { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* Design fixes: clear controls, shared disclosure, generous touch targets. */
+a { min-height: 44px; display: inline-flex; align-items: center; }
+button, .button, .button.sm, .week-item .button, .choice-chip > span { min-height: 44px; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.disclosure { min-width: 0; }
+.disclosure > .disclosure-trigger { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; min-height: 44px; font-family: var(--body-font); font-size: 14px; list-style: none; cursor: pointer; }
+.disclosure > summary::marker { content: ""; }
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary::before { content: none; }
+.disclosure-chevron { flex-shrink: 0; transition: transform .15s; }
+.disclosure[open] > summary .disclosure-chevron { transform: rotate(180deg); }
+.disclosure[open] > summary { margin-bottom: 16px; }
+.disclosure-content > .fields, .disclosure-content > form { margin-top: 12px; }
+.user-menu > .disclosure-trigger { border: 1px solid var(--line-strong); background: var(--surface); padding: 5px 12px 5px 5px; border-radius: 999px; text-align: left; }
+.user-menu > .disclosure-trigger:hover { background: var(--plain-bg); }
+.user-menu[open] > summary { margin-bottom: 0; }
+.user-menu .avatar { display: inline-grid; place-items: center; width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 50%; }
+.account-caption { display: grid; gap: 0; line-height: 1.3; }
+.account-caption small { color: var(--muted); font-size: 11px; padding: 0; min-height: auto; background: transparent; }
+.user-menu-content :is(a,button) { gap: 10px; border: 0; background: transparent; border-radius: 8px; }
+.user-menu-content :is(a,button):hover { background: var(--surface-2); }
+.user-menu-content .logout { color: var(--risk-ink); }
+.user-menu-content hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
+.week-pending, .week-group-items { display: grid; gap: 12px; }
+.week-pending > .pending-group { width: 100%; }
+.week-band .pending-group > summary { color: var(--band-text); font-size: 13px; margin-bottom: 0; padding-left: 0; }
+.week-band .pending-group > summary:hover { background: var(--band-inner); }
+.week-band .pending-group .disclosure-content { padding-top: 8px; }
+.week-band .pending-group .small { color: var(--band-muted); }
+.other-deliveries { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 20px; }
+.other-deliveries > h3 { margin-bottom: 12px; }
+.overview-links { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 24px; }
+.person-filter { justify-self: start; padding: 0 4px 0 16px; }
+.person-filter a { min-width: 44px; justify-content: center; color: inherit; }
+.period-switcher { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px 16px; }
+.period-tabs { margin: 0; flex-wrap: nowrap; }
+.period-arrows { grid-column: 3; grid-row: 1; gap: 8px; flex-wrap: nowrap; }
+.period-arrows a { min-width: 44px; padding: 4px 12px; font-size: 24px; }
+.period-current { grid-column: 2; grid-row: 1; text-align: center; margin: 0; }
+.period-reset { grid-column: 2; justify-self: center; }
+.objective-create { flex: 0 0 auto; }
+.objective-create[open] { flex: 1 0 100%; }
+.objective-create > summary { margin-left: auto; }
+.objective-create .disclosure-content { padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 16px; }
+.page-heading:has(.objective-create) { flex-wrap: wrap; }
+.quarter-field { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: 0; }
+.required-hint { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.ui-field.field-error > p { color: var(--risk-ink); }
+@media(max-width:719px) {
+  .mobile-page-title { display: none; }
+  .user-menu { display: block; margin-left: auto; }
+  .user-menu > .disclosure-trigger { font-size: 12px; gap: 5px; }
+  .brand strong { font-size: 14px; }
+  .page-heading a[href="/tasks/new"], .dashboard-heading a[href="/tasks/new"] { display: none; }
+  .period-switcher { grid-template-columns: 1fr auto; }
+  .period-arrows { grid-column: 2; }
+  .period-current { grid-column: 1 / -1; grid-row: 2; }
+  .period-reset { grid-column: 1 / -1; grid-row: 3; }
+  .period-tab { padding-inline: 16px; }
+  .week-item { flex-wrap: wrap; }
+}
+
+.week-item > .text-link { font-size: 12px; }
+.text-link, .back-link, .timeline a { display: inline-flex; align-items: center; min-height: 44px; }
+.user-menu .avatar { flex: 0 0 32px; }
+.period-arrows a { height: 44px; line-height: 1; }
+.objective-create.edit-disclosure { border: 0; margin: 0; padding: 0; }

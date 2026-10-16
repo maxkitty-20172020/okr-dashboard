@@ -1,8 +1,9 @@
+import { formatShortDate } from "@/lib/display";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { areaLabels, closed, followUpState, statusLabels, today, type TaskRow } from "@/lib/tasks";
 import { StatusBadge, type Tone } from "./status-badge";
-export const shortDate = (date: Date | null) => date ? `${date.getUTCMonth() + 1}/${date.getUTCDate()}` : "未定";
+export const shortDate = formatShortDate;
 export function TaskBadges({ task, full = false }: { task: TaskRow; full?: boolean }) {
   const follow = followUpState(task);
   const tone: Tone = task.status === "DONE" ? "done" : task.status === "BLOCKED" || task.health === "AT_RISK" ? "risk" : task.status === "WAITING" ? "wait" : task.status === "IN_PROGRESS" ? "ok" : "plain";
