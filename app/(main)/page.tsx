@@ -30,6 +30,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Link className="button secondary" href="/overview">周期汇报</Link>
       </div>
     </header>
+    {params.error === "no-permission" && <p className="form-error" role="alert">无权限管理成员</p>}
     {params.error === "read-only" && <p className="form-error" role="alert">老板账号仅可查看，数据未修改。</p>}
     <section className="stats-grid" aria-label="当前工作概况">
       <Link className="stat" href={boss ? "/tasks" : "/tasks?relation=owned"}>

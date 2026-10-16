@@ -1,6 +1,6 @@
 "use server";
 
-import { compare } from "bcryptjs";
+import { authenticateCredentials, compact, normalizeLogin } from "./login-credentials";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -16,23 +16,12 @@ function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-function compact(raw: string) {
-  return raw.normalize("NFKC").replace(/[\u200b-\u200d\ufeff]/g, "").trim();
-}
-
-function normalizeLogin(raw: string) {
-  const value = compact(raw).replace(/\s+/g, "").toLowerCase();
-  if (!value) {
-    return value;
-  }
-  return value.includes("@") ? value : `${value}@okr.local`;
-}
-
 export async function loginAction(_prev: { error?: string } | null, formData: FormData) {
-  const email = normalizeLogin(text(formData, "email"));
-  const password = compact(String(formData.get("password") ?? ""));
+  const login = text(formData, "email");
+  const email = normalizeLogin(login);
+  const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) {
+  if (!email || !compact(password)) {
     return { error: "请输入账号和密码" };
   }
 
@@ -41,20 +30,15 @@ export async function loginAction(_prev: { error?: string } | null, formData: Fo
   const lockedError = { error: "登录失败次数过多，请 10 分钟后重试" };
   if (loginLimiter.isLocked(email, ip)) return lockedError;
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await compare(password, user.passwordHash))) {
+  const user = await authenticateCredentials(prisma, login, password);
+  if (!user) {
     if (loginLimiter.recordFailure(email, ip)) return lockedError;
     return { error: "账号或密码不正确" };
   }
 
-  await createSession({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-  });
+  await createSession(user);
   loginLimiter.reset(email, ip);
-  redirect("/");
+  redirect(user.mustChangePassword ? "/account" : "/");
 }
 
 export async function logoutAction() {

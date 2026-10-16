@@ -32,13 +32,14 @@ function nextDate(form: FormData) {
   return d;
 }
 export async function writableUser(db: PrismaClient, actor: Member) {
-  const current = await db.user.findUnique({ where: { id: actor.id }, select: { id: true, name: true, role: true } });
+  const current = await db.user.findUnique({ where: { id: actor.id }, select: { id: true, name: true, role: true, disabledAt: true } });
+  if (current?.disabledAt) throw new TaskError("账号已停用，请重新登录。");
   if (!current || current.role === "BOSS") throw new TaskError("老板账号仅可查看，不能修改数据。");
   return current;
 }
 async function member(tx: Prisma.TransactionClient, id: string) {
   const u = await tx.user.findUnique({ where: { id } });
-  if (!u || u.role === "BOSS") throw new TaskError("请选择一位填报成员，老板不参与任务填报。");
+  if (!u || u.disabledAt || u.role === "BOSS") throw new TaskError("请选择一位未停用的填报成员，老板不参与任务填报。");
   return u;
 }
 async function basicData(tx: Prisma.TransactionClient, form: FormData) {

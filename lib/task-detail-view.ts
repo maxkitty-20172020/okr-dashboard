@@ -30,7 +30,7 @@ export async function loadTaskDetail(db: CheckInClient, user: Member, id: string
         }
       }
     ),
-    db.user.findMany({ where: { role: "MANAGER" }, select: publicUser, orderBy: { createdAt: "asc" } }),
+    db.user.findMany({ where: { role: "MANAGER", disabledAt: null }, select: publicUser, orderBy: { createdAt: "asc" } }),
     db.keyResult.findMany({ select: { id: true, title: true } }),
     db.checkIn.findMany(
       {

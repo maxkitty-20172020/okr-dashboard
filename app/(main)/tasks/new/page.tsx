@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function NewTaskPage() {
   const user = await requireWriter();
   const [members, keyResults, example] = await Promise.all([
-    prisma.user.findMany({ where: { role: "MANAGER" }, select: publicUser, orderBy: { createdAt: "asc" } }),
+    prisma.user.findMany({ where: { role: "MANAGER", disabledAt: null }, select: publicUser, orderBy: { createdAt: "asc" } }),
     prisma.keyResult.findMany({ select: { id: true, title: true } }),
     prisma.task.findFirst({
       where: { title: { startsWith: "【填写案例】" }, archivedAt: null },
