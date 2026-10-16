@@ -120,6 +120,10 @@ export async function descendantPeriodIds(db: PeriodClient, periodId: string) {
 export async function tasksInPeriod(db: PrismaClient | Prisma.TransactionClient, period: Period, quarterId?: string | null) {
   const periodIds = await descendantPeriodIds(db, period.id);
   const or: Prisma.TaskWhereInput[] = [
+    { createdAt: { lt: period.endAt }, OR: [
+      { status: { notIn: ["DONE", "CANCELLED"] } },
+      { completedAt: { gte: period.startAt } },
+    ] },
     { schedulePeriodId: { in: periodIds } },
     { dueAt: { gte: period.startAt, lt: period.endAt } },
   ];
@@ -127,7 +131,11 @@ export async function tasksInPeriod(db: PrismaClient | Prisma.TransactionClient,
     or.push({ keyResult: { objective: { periodId: quarterId } } });
   }
   return db.task.findMany({
-    where: { archivedAt: null, OR: or },
+    where: {
+      archivedAt: null, OR: or,
+      // Explicit null branch avoids SQL NOT(... completedAt < ...) dropping null dates.
+      AND: [{ OR: [{ status: { not: "CANCELLED" } }, { completedAt: null }, { completedAt: { gte: period.startAt } }] }],
+    },
     include: overviewTaskInclude,
     orderBy: { createdAt: "asc" },
   });

@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient, TaskArea, TaskHealth, TaskKind, TaskStatus } from "@prisma/client";
 import { closed, dateValue, snapshot, taskInclude, today, type Member } from "./tasks";
+import { assignRaci, ensureTaskRaciDefaults } from "./raci";
 
 export class TaskError extends Error {}
 export type ActionState = { error?: string; success?: string };
@@ -62,6 +63,7 @@ export async function createTask(db: PrismaClient, actor: Member, form: FormData
   return db.$transaction(async tx => {
     const data = await basicData(tx, form);
     const task = await tx.task.create({ data: { ...data, nextFollowUpAt: nextDate(form), nextAction: required(form, "nextAction", "下一步动作") }, include: { owner: true } });
+    await ensureTaskRaciDefaults(tx, task);
     await tx.taskUpdate.create({ data: { taskId: task.id, authorId: user.id, kind: "CREATED", body: "创建任务，明确负责人和完成标准。", snapshot: snapshot(task) } });
     return task.id;
   });
@@ -90,6 +92,11 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       const activeCollaborator = task.collaborators.find(c => c.userId === ownerId);
       if (ownerId !== task.ownerId && activeCollaborator && !activeCollaborator.done) throw new TaskError("新负责人还有未完成的协作交付，请先完成该协作或由原负责人移除协作分工。");
       if (activeCollaborator) await tx.taskCollaborator.update({ where: { id: activeCollaborator.id }, data: { active: false } });
+      if (activeCollaborator) await tx.raciAssignment.deleteMany({ where: { subjectType: "TASK", subjectId: id, userId: ownerId, role: "C" } });
+      if (ownerId !== task.ownerId) {
+        await tx.raciAssignment.deleteMany({ where: { subjectType: "TASK", subjectId: id, userId: task.ownerId, role: { in: ["R", "A"] } } });
+        await ensureTaskRaciDefaults(tx, { id, ownerId });
+      }
       data = { ...fields, ...(ownerId !== task.ownerId ? { lastConfirmedAt: null } : {}), owner: { connect: { id: ownerId } }, keyResult: keyResultId ? { connect: { id: keyResultId } } : { disconnect: true } };
       body = `调整任务资料或分工。原负责人：${task.owner.name}；原完成期限：${dateValue(task.dueAt) || "未设置"}。`;
     } else if (operation === "progress") {
@@ -116,6 +123,7 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       const existing = task.collaborators.find(c => c.userId === userId);
       if (existing) throw new TaskError("这位成员已在协作中，请先移除原分工再重新安排。");
       await tx.taskCollaborator.upsert({ where: { taskId_userId: { taskId: id, userId } }, create: { taskId: id, userId, deliverable, dueAt }, update: { deliverable, dueAt, done: false, note: "", active: true } });
+      await assignRaci(tx, { subjectType: "TASK", subjectId: id, userId, role: "C" });
       kind = "COLLABORATION"; body = `安排 ${collaborator.name} 协作：${deliverable}；期限：${dateValue(dueAt) || "未设置"}。`;
     } else if (operation === "contribution") {
       const c = task.collaborators.find(c => c.userId === user.id);
@@ -128,6 +136,7 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       const c = task.collaborators.find(c => c.id === value(form, "collaboratorId", 100));
       if (!c) throw new TaskError("协作分工已变更，请刷新页面。");
       await tx.taskCollaborator.update({ where: { id: c.id }, data: { active: false } });
+      await tx.raciAssignment.deleteMany({ where: { subjectType: "TASK", subjectId: id, userId: c.userId, role: "C" } });
       kind = "COLLABORATION"; body = `移除 ${c.user.name} 的协作分工：${c.deliverable}。历史交付记录保留。`;
     } else if (operation === "milestone") {
       const title = required(form, "milestoneTitle", "节点名称", 160);
