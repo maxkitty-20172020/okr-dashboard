@@ -2,12 +2,15 @@
 
 用于业务、团队和库存管理的部门事项看板。成员记录任务及协作交付，老板查看部门全貌。
 
+已部署在 [okr.zungyunai.top](https://okr.zungyunai.top)。线上使用腾讯云 Ubuntu 22.04、Node.js 20、systemd 和 nginx HTTPS 反向代理，Next.js 监听 `127.0.0.1:3001`。
+
 ## 启动与升级
 
+运行环境需要 Node.js 20.9 或更高版本，以及 `python3`（数据库在线备份和测试使用，不依赖 sqlite3 命令行工具）。全新安装：
+
 ```bash
-npm install
+npm ci
 cp .env.example .env  # 已有配置请保留，不要覆盖
-touch prisma/dev.db  # 默认 SQLite 配置；全新安装时创建空文件，已有内容不会覆盖
 npx prisma migrate deploy
 npx prisma generate
 npm run dev
@@ -18,6 +21,23 @@ npm run dev
 已有数据升级使用 `prisma migrate deploy`，不要使用数据库重置命令。迁移保留任务 ID、原负责人、原所属周、状态和目标关联；旧任务的完成时间沿用原记录更新时间，并在历史记录中说明。不会给旧任务自动生成虚假的进度确认。
 
 SQLite 默认位于 `prisma/dev.db`。升级前应使用 SQLite backup 方式备份，运行期间不要仅复制主文件而遗漏 WAL。代码提交到 Git 不会同步数据库。
+
+**每次上线前必须先执行 `scripts/backup-db.sh`，确认成功后再升级和迁移：**
+
+```bash
+./scripts/backup-db.sh
+npm ci
+npx prisma migrate deploy
+npx prisma generate
+npm run build
+# 按服务器现有流程重启 systemd 服务
+```
+
+脚本读取项目根目录 `.env` 的 `DATABASE_URL`；`file:./dev.db` 相对 `prisma/`，也支持绝对路径。备份默认保存为 `~/okr-backups/okr-YYYYMMDD-HHMMSS.db`，完成后执行 `PRAGMA integrity_check`，失败会以非零状态退出，且不清理旧备份；成功后只保留最近 30 份。同一秒重复执行会报错，避免覆盖已有备份。可用 `BACKUP_DIR=/其他目录 ./scripts/backup-db.sh` 覆盖输出目录。全新空库请先完成安装，之后每次上线均需备份。
+
+Prisma 6 的 seed 配置位于 `prisma.config.ts`，显式加载根目录 `.env`，外部设置的 `DATABASE_URL` 优先。保留 Prisma 6，不执行数据库重置。
+
+生产环境的会话 Cookie 仅通过 HTTPS 发送。登录按规范化账号 + 客户端 IP 计数（优先取 nginx 设置的 `X-Real-IP`，否则取 `X-Forwarded-For` 最后一个值），十分钟内失败五次锁定十分钟，成功清零；该限制仅保存在单进程内存中，重启清零，不支持多进程共享。nginx 须设置 `proxy_set_header X-Real-IP $remote_addr;`（线上已配置）。
 
 ## 周期、WBS、RACI 与 Check-in
 
@@ -83,14 +103,18 @@ npm run db:seed
 
 目标支持「提升」和「降低」两种方向及起点值。例如 ACOS 起点 35、目标 25、当前 30 的进度为 50%。不能将不同指标的百分比简单当作部门总体表现。
 
-本版包含页面内到期跟进提示；定时外部通知、周期任务自动生成和独立复盘快照安排在后续版本。当前为本地应用，多人异地使用需部署到同一服务并做好数据库备份，尚未配置公网部署。
+本版包含页面内到期跟进提示；定时外部通知、周期任务自动生成和独立复盘快照安排在后续版本。多人异地使用请访问已部署的同一服务，并做好数据库备份。
 
 ## 验证
 
 ```bash
+npm ci
+npx prisma generate
 npm test
 npm run lint
 npm run build
 ```
 
 测试使用独立临时 SQLite 数据库，覆盖迁移保留、跨周任务、多人协作、老板写入拦截、跟进确认、并发版本冲突、日期校验、归档恢复、降低类指标，以及 Period 树、目标周期回填、RACI 默认值、Check-in 未汇报 / 暂无变化 / 老板不可写，和任务完成率 / KR 达成率。
+
+新增测试覆盖登录限流的滚动窗口、锁定时长、成功清零和账号/IP 隔离，以及备份脚本的 WAL 在线备份、完整性检查、路径解析和轮换。备份测试使用临时项目和临时数据库，输出目录由 `BACKUP_DIR` 指定，不写入 `~/okr-backups`。GitHub Actions 在 Node.js 20 上依次执行上述命令。
