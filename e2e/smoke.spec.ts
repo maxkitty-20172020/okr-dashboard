@@ -9,9 +9,9 @@ test.describe("自动化冒烟测试与权限边界", () => {
   // 1. 三种账号登录与退出
   test("三种账号登录与退出 (老板 okr、成员 okr1、okr2)", async ({ page }) => {
     const accounts = [
-      { email: "okr", name: "陈总", roleText: "老板 · 只读" },
-      { email: "okr1", name: "李明", roleText: "管理成员 · 可填报" },
-      { email: "okr2", name: "王芳", roleText: "管理成员 · 可填报" },
+      { email: "okr", name: "陈总", roleText: "只看不改" },
+      { email: "okr1", name: "李明", roleText: "填报成员" },
+      { email: "okr2", name: "王芳", roleText: "填报成员" },
     ];
 
     for (const acc of accounts) {
@@ -21,13 +21,14 @@ test.describe("自动化冒烟测试与权限边界", () => {
       await page.click('button[type="submit"]');
 
       await expect(page).not.toHaveURL(/\/login/);
-      // 验证侧边栏用户名与身份
+      // 验证顶栏用户名与身份
       const userText = page.locator(".signed-user");
       await expect(userText).toContainText(acc.name);
       await expect(userText).toContainText(acc.roleText);
 
       // 退出登录
-      await page.click('button.logout, button:has-text("退出登录")');
+      await page.locator(".user-menu > summary").click();
+      await page.getByRole("button", { name: "退出登录", exact: true }).click();
       await expect(page).toHaveURL(/\/login/);
     }
   });
@@ -48,7 +49,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
     await page.goto("/tasks");
     const firstTask = page.locator('a[href^="/tasks/"]').first();
     await firstTask.click();
-    await expect(page.locator(".readonly-label")).toContainText("老板账号 · 只读");
+    await expect(page.locator(".readonly-label")).toContainText("只看不改");
     await expect(page.locator("#update")).toHaveCount(0);
     await expect(page.locator("#checkin form")).toHaveCount(0);
 
@@ -79,7 +80,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
 
     await Promise.all([
       page.waitForURL(url => url.pathname.startsWith("/tasks/") && url.pathname !== "/tasks/new"),
-      page.click('button[type="submit"]:has-text("创建任务")'),
+      page.click('button[type="submit"]:has-text("记下来")'),
     ]);
 
     // 验证跳转到任务详情
@@ -87,7 +88,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
 
     // 主负责人更新进展
     const updateSec = page.locator("#update");
-    await updateSec.locator('select[name="mood"]').selectOption("ok");
+    await updateSec.getByRole("radio", { name: "顺利推进", exact: true }).check();
     await updateSec.locator('textarea[name="summary"]').fill("自动化测试脚本已创建并执行首次验证。");
     await updateSec.locator('input[name="nextAction"]').fill("持续监控构建流水线");
     await updateSec.locator('button[type="submit"]').click();
@@ -183,7 +184,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
 
       await Promise.all([
         page.waitForURL(url => url.pathname.startsWith("/tasks/") && url.pathname !== "/tasks/new"),
-        page.click('button[type="submit"]:has-text("创建任务")'),
+        page.click('button[type="submit"]:has-text("记下来")'),
       ]);
 
       // 进入本周总览
@@ -213,7 +214,8 @@ test.describe("自动化冒烟测试与权限边界", () => {
 
       // 移交给王芳
       await page.click("#details");
-      await page.selectOption('#details select[name="ownerId"]', { label: "王芳" });
+      await page.locator("#details").getByRole("radio", { name: "王芳", exact: true }).check();
+      await page.locator(".transfer-confirmation input").check();
       await page.click('#details button:has-text("保存任务资料")');
       await page.waitForTimeout(1000);
 

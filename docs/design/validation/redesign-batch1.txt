@@ -1,0 +1,114 @@
+2026-10-16 | feat/redesign-1 | baseline contains 5c93de7
+No commit / push. Test databases are disposable and explicitly configured.
+
+Node 25.8.1 — npm test — exit 0
+✔ 降低类指标使用起点，ACOS 35→25 的 30% 为完成一半 (0.16625ms)
+✔ 历史迁入与新进展按同一时间类型排序 (10.361875ms)
+ℹ tests 92
+ℹ suites 0
+ℹ pass 92
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 35910.957375
+
+Node 25.8.1 — npm run lint — exit 0
+
+> okr-dashboard@0.1.0 lint
+> eslint
+
+
+Node 25.8.1 — npm run build — exit 0
+  Running TypeScript ...
+  Finished TypeScript in 1763ms ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/3) ...
+✓ Generating static pages using 9 workers (3/3) in 100ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /account
+├ ƒ /guide
+├ ƒ /login
+├ ƒ /members
+├ ƒ /okrs
+├ ƒ /okrs/[id]
+├ ƒ /overview
+├ ƒ /tasks
+├ ƒ /tasks/[id]
+├ ƒ /tasks/new
+└ ƒ /week
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+Node 20.20.2 — npm test — exit 0
+  ...
+1..92
+# tests 92
+# suites 0
+# pass 92
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 35287.745
+
+Node 20.20.2 — npm run build — exit 0
+  Running TypeScript ...
+  Finished TypeScript in 972ms ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/3) ...
+✓ Generating static pages using 9 workers (3/3) in 82ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /account
+├ ƒ /guide
+├ ƒ /login
+├ ƒ /members
+├ ƒ /okrs
+├ ƒ /okrs/[id]
+├ ƒ /overview
+├ ƒ /tasks
+├ ƒ /tasks/[id]
+├ ƒ /tasks/new
+└ ƒ /week
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+npm run test:e2e — exit 1; no browser tests executed
+[WebServer] -----
+[WebServer] FATAL: An unexpected Turbopack error occurred. A panic log has been written to /var/folders/06/x68m12xx4rz51wzdvddgzbch0000gn/T/next-panic-7eb94a489c1e53ce4d01645034279f5f.log.
+[WebServer] 
+[WebServer] To help make Turbopack better, report this error by ttps://bugs.nextjs.org/search?category=turbopack-error-report&title=Turbopack%20Error%3A%20unable%20to%20start%20FSEvent%20stream&body=Turbopack%20version%3A%20%602864b177%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0Aunable%20to%20start%20FSEvent%20stream%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace\clicking here.;;\
+[WebServer] -----
+[WebServer] 
+[WebServer] Error [TurbopackInternalError]: unable to start FSEvent stream
+[WebServer]     at <unknown> (TurbopackInternalError: unable to start FSEvent stream) {
+[WebServer]   location: undefined
+[WebServer] }
+Error: Process from config.webServer was not able to start. Exit code: 1
+
+
+npm run test:e2e -- --list — exit 0
+  [chromium] › smoke.spec.ts:199:7 › 自动化冒烟测试与权限边界 › 移交任务给他人后，原负责人不应再拥有该任务的 Check-in 提交权限 (引用: UX-02)
+Total: 17 tests in 4 files
+
+git diff --check — exit 0
+Protected files unchanged: prisma/schema.prisma, prisma/migrations/, playwright.config.ts, package.json, package-lock.json, AGENTS.md.
+prisma/dev.db absent. Screenshots and browser acceptance pending controller environment.
