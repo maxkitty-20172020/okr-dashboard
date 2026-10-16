@@ -1,2 +1,5 @@
 "use client";
-export default function ErrorPage({ reset }: { reset: () => void }) { return <div className="page empty-state"><h1>暂时无法加载看板</h1><p>请重试。尚未提交的内容不会自动保存。</p><button className="button" onClick={reset}>重新加载</button></div>; }
+import { Button } from "@/components/ui/button";
+export default function ErrorPage({ reset }: { reset: () => void }) {
+  return <div className="page surface detail-section" role="alert"><h1>没加载出来</h1><p className="muted">请重试。尚未提交的内容不会自动保存。</p><Button type="button" onClick={reset}>重试</Button></div>;
+}
