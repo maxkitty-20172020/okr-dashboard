@@ -12,13 +12,13 @@ export default async function OkrsPage({ searchParams }: { searchParams: Promise
   const [users, objectives] = await Promise.all([
     prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] }),
     prisma.objective.findMany({
-      include: { owner: true, keyResults: { orderBy: { createdAt: "asc" } } },
+      include: { owner: true, keyResults: { orderBy: { createdAt: "asc" }, include: { _count: { select: { tasks: { where: { archivedAt: null } } } } } } },
       orderBy: { createdAt: "asc" },
     }),
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="okr-page">
       {params.error && <p className="form-error" role="alert">{Object.hasOwn(okrErrorMessages, params.error) ? okrErrorMessages[params.error as keyof typeof okrErrorMessages] : "修改未保存，请刷新页面后重试。"}</p>}
       <OkrBoard
         currentUserId={session.id}

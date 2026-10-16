@@ -1,267 +1,52 @@
 import type { KeyResult, Objective, User } from "@prisma/client";
 import Link from "next/link";
-import {
-  createKeyResultAction,
-  createObjectiveAction,
-  deleteKeyResultAction,
-  deleteObjectiveAction,
-  updateKeyResultAction,
-  updateObjectiveAction,
-} from "@/lib/actions";
+import { createKeyResultAction, createObjectiveAction, deleteKeyResultAction, deleteObjectiveAction, updateKeyResultAction, updateObjectiveAction } from "@/lib/actions";
 import { ProgressBar } from "@/components/progress-bar";
-import { progressPercent } from "@/lib/okr";
+import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
+import { ChoiceChips } from "@/components/ui/choice-chips";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { keyResultAchievementRate, progressPercent } from "@/lib/okr";
+import { objectiveTaskCount } from "@/lib/redesign-view";
 
-type ObjectiveRow = Objective & {
-  owner: User;
-  keyResults: KeyResult[];
-};
-
-export function OkrBoard({
-  currentUserId,
-  users,
-  objectives,
-  cycle,
-  readOnly = false,
-}: {
-  currentUserId: string;
-  users: User[];
-  objectives: ObjectiveRow[];
-  cycle: string;
-  readOnly?: boolean;
-}) {
-
-  if (readOnly) return <div className="page"><header className="page-heading"><div><p className="eyebrow">经营结果</p><h1>目标与结果</h1><p className="muted">查看目标、当前值与关键结果，老板账号无需填写。可下钻到任务、交付物和 Check-in。</p></div><span className="readonly-label">老板账号 · 只读</span></header><div className="space-y-4">{objectives.map(o => <article key={o.id} className="surface detail-section"><p className="muted small">{o.cycle} · {o.owner.name}</p><h2><Link href={`/okrs/${o.id}`}>{o.title}</Link></h2><p className="section-help">{o.description}</p><div className="space-y-4">{o.keyResults.map(kr => <div key={kr.id}><div className="section-heading"><span>{kr.title}</span><span className="muted small">{kr.direction === "DECREASE" ? "降低" : "提升"} · 当前 {kr.currentValue} / 目标 {kr.targetValue} {kr.unit}</span></div><ProgressBar value={progressPercent(kr.currentValue, kr.targetValue, kr.baselineValue, kr.direction)} /><p className="muted small">起点 {kr.baselineValue} {kr.unit}</p></div>)}</div><Link className="text-link" href={`/okrs/${o.id}`}>查看任务与汇报 →</Link></article>)}{!objectives.length && <div className="empty-state">还没有设置目标与关键结果。</div>}</div></div>;
-  return (
-    <div className="space-y-8">
-      <header>
-        <p className="text-xs tracking-[0.18em] text-muted uppercase">Objectives</p>
-        <h1 className="mt-2 font-serif text-4xl italic">目标与结果</h1>
-        <p className="mt-2 text-muted">先写目标，再补可量化的关键结果。当前周期 {cycle}</p>
-      </header>
-
-      <form action={createObjectiveAction} className="rounded-2xl border border-line bg-card p-5">
-        <h2 className="text-lg font-medium">新增 Objective</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-muted">目标</span>
-            <input
-              name="title"
-              required
-              placeholder="这个季度最重要的结果是什么"
-              className="w-full rounded-lg border border-line bg-white px-3 py-2 outline-none ring-gold/40 focus:ring-2"
-            />
-          </label>
-          <label className="md:col-span-2">
-            <span className="mb-1 block text-sm text-muted">说明</span>
-            <textarea
-              name="description"
-              rows={2}
-              className="w-full rounded-lg border border-line bg-white px-3 py-2 outline-none ring-gold/40 focus:ring-2"
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-sm text-muted">周期</span>
-            <input
-              name="cycle"
-              defaultValue={cycle}
-              required
-              className="w-full rounded-lg border border-line bg-white px-3 py-2"
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-sm text-muted">负责人</span>
-            <select
-              name="ownerId"
-              defaultValue={currentUserId}
-              className="w-full rounded-lg border border-line bg-white px-3 py-2"
-            >
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <button type="submit" className="mt-4 rounded-lg bg-ink px-4 py-2 text-sm text-[#f7f1e6]">
-          保存目标
-        </button>
-      </form>
-
-      <div className="space-y-5">
-        {objectives.map((objective) => (
-          <article key={objective.id} className="rounded-2xl border border-line bg-card p-5">
-            <p className="mb-3 text-sm"><Link className="text-link" href={`/okrs/${objective.id}`}>查看任务、交付物与汇报 →</Link></p>
-            <form action={updateObjectiveAction} className="grid gap-3 md:grid-cols-2">
-              <input type="hidden" name="id" value={objective.id} />
-              <label className="md:col-span-2">
-                <span className="mb-1 block text-sm text-muted">目标</span>
-                <input
-                  name="title"
-                  defaultValue={objective.title}
-                  required
-                  className="w-full rounded-lg border border-line bg-white px-3 py-2"
-                />
-              </label>
-              <label className="md:col-span-2">
-                <span className="mb-1 block text-sm text-muted">说明</span>
-                <textarea
-                  name="description"
-                  defaultValue={objective.description}
-                  rows={2}
-                  className="w-full rounded-lg border border-line bg-white px-3 py-2"
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-sm text-muted">周期</span>
-                <input
-                  name="cycle"
-                  defaultValue={objective.cycle}
-                  required
-                  className="w-full rounded-lg border border-line bg-white px-3 py-2"
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-sm text-muted">负责人</span>
-                <select
-                  name="ownerId"
-                  defaultValue={objective.ownerId}
-                  className="w-full rounded-lg border border-line bg-white px-3 py-2"
-                >
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="md:col-span-2 flex gap-3">
-                <button type="submit" className="rounded-lg bg-ink px-4 py-2 text-sm text-[#f7f1e6]">
-                  更新目标
-                </button>
-              </div>
-            </form>
-            <form action={deleteObjectiveAction} className="mt-2">
-              <input type="hidden" name="id" value={objective.id} />
-              <button type="submit" className="text-sm text-danger">
-                删除这个目标及其关键结果
-              </button>
-            </form>
-
-            <div className="mt-6 space-y-3">
-              <h3 className="text-sm font-medium text-muted">关键结果</h3>
-              {objective.keyResults.map((kr) => (
-                <div key={kr.id} className="rounded-xl bg-paper p-4">
-                  <div className="mb-3">
-                    <ProgressBar value={progressPercent(kr.currentValue, kr.targetValue, kr.baselineValue, kr.direction)} />
-                  </div>
-                  <form action={updateKeyResultAction} className="grid gap-3 md:grid-cols-4">
-                    <input type="hidden" name="id" value={kr.id} />
-                    <label className="md:col-span-2">
-                      <span className="mb-1 block text-xs text-muted">KR</span>
-                      <input
-                        name="title"
-                        defaultValue={kr.title}
-                        required
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                      />
-                    </label>
-                    <label>
-                      <span className="mb-1 block text-xs text-muted">当前值</span>
-                      <input
-                        name="currentValue"
-                        type="number"
-                        step="any"
-                        defaultValue={kr.currentValue}
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                      />
-                    </label>
-                    <label>
-                      <span className="mb-1 block text-xs text-muted">目标值</span>
-                      <input
-                        name="targetValue"
-                        type="number"
-                        step="any"
-                        defaultValue={kr.targetValue}
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                      />
-                    </label>
-                    <label><span className="mb-1 block text-xs text-muted">起点值</span><input className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="baselineValue" type="number" step="any" defaultValue={kr.baselineValue} required /></label>
-                    <label><span className="mb-1 block text-xs text-muted">目标方向</span><select className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="direction" defaultValue={kr.direction}><option value="INCREASE">提升（目标高于起点）</option><option value="DECREASE">降低（目标低于起点）</option></select></label>
-                    <label>
-                      <span className="mb-1 block text-xs text-muted">单位</span>
-                      <input
-                        name="unit"
-                        defaultValue={kr.unit}
-                        className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                      />
-                    </label>
-                    <div className="flex items-end gap-3 md:col-span-3">
-                      <button type="submit" className="rounded-lg bg-ink px-3 py-2 text-sm text-[#f7f1e6]">
-                        更新 KR
-                      </button>
-                    </div>
-                  </form>
-                  <form action={deleteKeyResultAction} className="mt-2">
-                    <input type="hidden" name="id" value={kr.id} />
-                    <button type="submit" className="text-xs text-danger">
-                      删除 KR
-                    </button>
-                  </form>
-                </div>
-              ))}
-
-              <form action={createKeyResultAction} className="grid gap-3 rounded-xl border border-dashed border-line p-4 md:grid-cols-4">
-                <input type="hidden" name="objectiveId" value={objective.id} />
-                <label className="md:col-span-2">
-                  <span className="mb-1 block text-xs text-muted">新 KR</span>
-                  <input
-                    name="title"
-                    required
-                    placeholder="可量化的结果"
-                    className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                  />
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs text-muted">当前值</span>
-                  <input
-                    name="currentValue"
-                    type="number"
-                    step="any"
-                    defaultValue={0}
-                    className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                  />
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs text-muted">目标值</span>
-                  <input
-                    name="targetValue"
-                    type="number"
-                    step="any"
-                    defaultValue={100}
-                    className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                  />
-                </label>
-                <label><span className="mb-1 block text-xs text-muted">起点值</span><input className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="baselineValue" type="number" step="any" defaultValue={0} required /></label>
-                <label><span className="mb-1 block text-xs text-muted">目标方向</span><select className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" name="direction" defaultValue="INCREASE"><option value="INCREASE">提升（目标高于起点）</option><option value="DECREASE">降低（目标低于起点）</option></select></label>
-                <label>
-                  <span className="mb-1 block text-xs text-muted">单位</span>
-                  <input
-                    name="unit"
-                    defaultValue="%"
-                    className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
-                  />
-                </label>
-                <div className="flex items-end md:col-span-3">
-                  <button type="submit" className="rounded-lg border border-line bg-white px-3 py-2 text-sm">
-                    添加 KR
-                  </button>
-                </div>
-              </form>
-            </div>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
+type ObjectiveRow = Objective & { owner: User; keyResults: (KeyResult & { _count: { tasks: number } })[] };
+function ObjectiveFields({ objective, users, cycle, ownerId }: { objective?: Objective; users: User[]; cycle: string; ownerId: string }) {
+  return <div className="fields">
+    <Field className="span-all" label="目标" help="写这个季度最重要的结果。"><input name="title" required defaultValue={objective?.title} placeholder="例：提高核心产品的盈利能力" /></Field>
+    <Field className="span-all" label="说明" help="补充为什么做、希望带来什么变化。"><textarea name="description" rows={2} defaultValue={objective?.description} placeholder="例：优化产品结构，减少低效投入" /></Field>
+    <Field label="周期" help="填写目标所属季度。"><input name="cycle" required defaultValue={objective?.cycle ?? cycle} placeholder="例：2026-Q4" /></Field>
+    <ChoiceChips name="ownerId" legend="负责人" help="选择维护这个目标的人。例：李明。" defaultValue={objective?.ownerId ?? ownerId} options={users.map(user => ({ value: user.id, label: user.name }))} />
+  </div>;
+}
+function KeyResultFields({ result }: { result?: KeyResult }) {
+  return <div className="fields">
+    <Field className="span-all" label={result ? "关键结果" : "新的关键结果"} help="写一个可量化的业务结果。"><input name="title" required defaultValue={result?.title} placeholder="例：核心产品转化率达到 15%" /></Field>
+    <Field label="当前值" help="填写最新实际数值。"><input name="currentValue" type="number" step="any" defaultValue={result?.currentValue ?? 0} placeholder="例：12" /></Field>
+    <Field label="目标值" help="填写期末希望达到的数值。"><input name="targetValue" type="number" step="any" defaultValue={result?.targetValue ?? 100} placeholder="例：15" /></Field>
+    <Field label="起点值" help="填写开始时的数值，用来计算达成度。"><input name="baselineValue" type="number" step="any" required defaultValue={result?.baselineValue ?? 0} placeholder="例：10" /></Field>
+    <Field label="单位" help="填写数值使用的单位。"><input name="unit" defaultValue={result?.unit ?? "%"} placeholder="例：%" /></Field>
+    <ChoiceChips name="direction" legend="目标方向" help="数值提升还是降低。例：成本选降低。" defaultValue={result?.direction ?? "INCREASE"} options={[{ value: "INCREASE", label: "提升（目标高于起点）" }, { value: "DECREASE", label: "降低（目标低于起点）" }]} />
+  </div>;
+}
+export function OkrBoard({ currentUserId, users, objectives, cycle, readOnly = false }: { currentUserId: string; users: User[]; objectives: ObjectiveRow[]; cycle: string; readOnly?: boolean }) {
+  return <div className="page">
+    <header className="page-heading"><div><p className="eyebrow">经营结果 · {cycle}</p><h1>目标</h1><p className="muted">先写目标，再补可量化的关键结果。打开目标查看为它推进的事项。</p></div>{readOnly && <span className="readonly-label">只看不改</span>}</header>
+    {!readOnly && <details className="surface detail-section edit-disclosure"><summary>＋ 新增目标</summary><form action={createObjectiveAction}><ObjectiveFields users={users} cycle={cycle} ownerId={currentUserId} /><div className="form-actions"><Button size="lg">保存目标</Button></div></form></details>}
+    {objectives.length > 0 && <div className="goal-grid section-block">{objectives.map(objective => <article className="surface detail-section objective-card" key={objective.id}>
+      <p className="muted small">{objective.cycle} · {objective.owner.name}</p>
+      <h2><Link href={`/okrs/${objective.id}`}>{objective.title}</Link></h2>
+      {objective.description && <p className="section-help">{objective.description}</p>}
+      <ProgressBar value={keyResultAchievementRate(objective.keyResults)} />
+      <div className="section-heading"><p className="muted small">业务指标达成度 {Math.round(keyResultAchievementRate(objective.keyResults))}%</p><StatusBadge>关联事项 {objectiveTaskCount(objective.keyResults)}</StatusBadge></div>
+      {objective.keyResults.length > 0 && <ul className="goal-kr-list">{objective.keyResults.map(result => <li key={result.id}><div><strong>{result.title}</strong><p className="muted small">当前 {result.currentValue} / 目标 {result.targetValue} {result.unit} · 起点 {result.baselineValue} · {result.direction === "DECREASE" ? "降低" : "提升"}</p><ProgressBar value={progressPercent(result.currentValue, result.targetValue, result.baselineValue, result.direction)} /></div></li>)}</ul>}
+      <Link className="text-link" href={`/okrs/${objective.id}`}>查看事项与进展 →</Link>
+      {!readOnly && <details className="edit-disclosure"><summary>编辑目标与关键结果</summary>
+        <form action={updateObjectiveAction}><input type="hidden" name="id" value={objective.id} /><ObjectiveFields objective={objective} users={users} cycle={cycle} ownerId={currentUserId} /><div className="form-actions"><Button>更新目标</Button></div></form>
+        <form action={deleteObjectiveAction} className="form-actions"><input type="hidden" name="id" value={objective.id} /><Button variant="danger">删除这个目标及其关键结果</Button></form>
+        {objective.keyResults.map(result => <details key={result.id} className="edit-disclosure"><summary>{result.title}</summary><form action={updateKeyResultAction}><input type="hidden" name="id" value={result.id} /><KeyResultFields result={result} /><div className="form-actions"><Button>更新关键结果</Button></div></form><form action={deleteKeyResultAction} className="form-actions"><input type="hidden" name="id" value={result.id} /><Button variant="danger">删除关键结果</Button></form></details>)}
+        <details className="edit-disclosure"><summary>＋ 添加关键结果</summary><form action={createKeyResultAction}><input type="hidden" name="objectiveId" value={objective.id} /><KeyResultFields /><div className="form-actions"><Button variant="secondary">添加关键结果</Button></div></form></details>
+      </details>}
+    </article>)}</div>}
+    {!objectives.length && <p className="lane-empty section-block">还没有设置目标与关键结果。</p>}
+  </div>;
 }
