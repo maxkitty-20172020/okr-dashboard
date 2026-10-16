@@ -161,15 +161,18 @@ test.describe("自动化冒烟测试与权限边界", () => {
     ]);
   });
 
-  // 6. 已知失败场景 (a) - 标注 test.fixme
-  test.fixme(
+  // 6. 回归测试 (a)
+  test(
     "新建不填完成期限的任务，应出现在本周总览的待我汇报中 (引用: UX-01)",
     async ({ page }) => {
       // 注释引用: [UX-01] 新建无期限任务因 schedulePeriodId 和 dueAt 均为空，未被 tasksInPeriod 纳入当前周
       await page.goto("/login");
       await page.fill('input[name="email"]', "okr1");
       await page.fill('input[name="password"]', "okr12345");
-      await page.click('button[type="submit"]');
+      await Promise.all([
+        page.waitForURL(url => url.pathname === "/"),
+        page.click('button[type="submit"]'),
+      ]);
 
       await page.goto("/tasks/new");
       const title = `UX-01-验证任务-${Date.now()}`;
@@ -186,20 +189,23 @@ test.describe("自动化冒烟测试与权限边界", () => {
       // 进入本周总览
       await page.goto("/overview?kind=WEEK");
       // 预期：作为本周创建且正在进行的事项，应出现在待我汇报或本周期任务列表中
-      // 实际：由于 tasksInPeriod 遗漏无期限任务，该断言会失败
-      await expect(page.locator(`text=${title}`)).toBeVisible({ timeout: 3000 });
+      // 已于 fix/checkin-integrity 修复（tasksInPeriod 纳入周期内未结束的任务）
+      await expect(page.locator(`text=${title}`).first()).toBeVisible({ timeout: 3000 });
     }
   );
 
-  // 7. 已知失败场景 (b) - 标注 test.fixme
-  test.fixme(
+  // 7. 回归测试 (b)
+  test(
     "移交任务给他人后，原负责人不应再拥有该任务的 Check-in 提交权限 (引用: UX-02)",
     async ({ page }) => {
       // 注释引用: [UX-02] 移交负责人仅修改 ownerId，未同步清理 RaciAssignment 中原负责人的 R/A，导致原负责人仍能提交周汇报
       await page.goto("/login");
       await page.fill('input[name="email"]', "okr1");
       await page.fill('input[name="password"]', "okr12345");
-      await page.click('button[type="submit"]');
+      await Promise.all([
+        page.waitForURL(url => url.pathname === "/"),
+        page.click('button[type="submit"]'),
+      ]);
 
       // 找到李明（okr1）作为主责且已回填 RACI 的演示任务
       await page.goto("/tasks");
@@ -212,7 +218,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
       await page.waitForTimeout(1000);
 
       // 预期：原主责李明已不再是主责，不应再看到或能够提交 #checkin 汇报表单
-      // 实际：由于 hasRaciRA 仍匹配到李明的历史 R/A 记录，表单依然存在，该断言会失败
+      // 已于 fix/checkin-integrity 修复（移交时同步 RACI R/A）
       await expect(page.locator("#checkin form")).toHaveCount(0);
     }
   );
