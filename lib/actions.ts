@@ -4,22 +4,16 @@ import { compare } from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createSession, destroySession, requireSession, requireWriter } from "@/lib/auth";
+import { createSession, destroySession, requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createTask, mutateTask, TaskError, type ActionState } from "@/lib/task-service";
-import { resolveQuarterPeriod } from "@/lib/period";
+import { createObjective, updateObjective, deleteObjective, createKeyResult, updateKeyResult, deleteKeyResult, OkrError } from "@/lib/okr-service";
+import { type Member } from "@/lib/tasks";
 import { CheckInError, submitCheckIn } from "@/lib/check-in";
 import { loginIp, loginLimiter } from "@/lib/login-limit";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
-}
-
-function numberValue(formData: FormData, key: string) {
-  const raw = text(formData, key);
-  const value = Number(raw);
-  if (!raw || !Number.isFinite(value)) redirect("/okrs?error=number");
-  return value;
 }
 
 function compact(raw: string) {
@@ -68,103 +62,42 @@ export async function logoutAction() {
   redirect("/login");
 }
 
-export async function createObjectiveAction(formData: FormData) {
-  const session = await requireWriter();
-  const title = text(formData, "title");
-  const description = text(formData, "description");
-  const cycle = text(formData, "cycle");
-  const ownerId = text(formData, "ownerId") || session.id;
-
-  if (!title || !cycle) {
-    return;
+function objectiveInput(form: FormData, defaultOwner = "") {
+  return { title: text(form, "title"), description: text(form, "description"), cycle: text(form, "cycle"), ownerId: text(form, "ownerId") || defaultOwner };
+}
+function keyResultInput(form: FormData) {
+  return { title: text(form, "title"), unit: text(form, "unit"), direction: text(form, "direction"), baselineValue: text(form, "baselineValue"), currentValue: text(form, "currentValue"), targetValue: text(form, "targetValue") };
+}
+async function okrWrite(operation: (actor: Member) => Promise<unknown>) {
+  const session = await requireSession();
+  let errorCode: string | undefined;
+  try {
+    await operation(session);
+  } catch (error) {
+    if (!(error instanceof OkrError)) throw error;
+    errorCode = error.code;
   }
-
-  const period = await resolveQuarterPeriod(prisma, cycle);
-  await prisma.objective.create({
-    data: { title, description, cycle, ownerId, periodId: period.id },
-  });
+  if (errorCode) redirect(`/okrs?error=${encodeURIComponent(errorCode)}`);
   revalidatePath("/", "layout");
 }
 
-export async function updateObjectiveAction(formData: FormData) {
-  await requireWriter();
-  const id = text(formData, "id");
-  const title = text(formData, "title");
-  const description = text(formData, "description");
-  const cycle = text(formData, "cycle");
-  const ownerId = text(formData, "ownerId");
-
-  if (!id || !title || !cycle || !ownerId) {
-    return;
-  }
-
-  const period = await resolveQuarterPeriod(prisma, cycle);
-  await prisma.objective.update({
-    where: { id },
-    data: { title, description, cycle, ownerId, periodId: period.id },
-  });
-  revalidatePath("/", "layout");
+export async function createObjectiveAction(form: FormData) {
+  await okrWrite(actor => createObjective(prisma, actor, objectiveInput(form, actor.id)));
 }
-
-export async function deleteObjectiveAction(formData: FormData) {
-  await requireWriter();
-  const id = text(formData, "id");
-  if (!id) {
-    return;
-  }
-  await prisma.objective.delete({ where: { id } });
-  revalidatePath("/", "layout");
+export async function updateObjectiveAction(form: FormData) {
+  await okrWrite(actor => updateObjective(prisma, actor, text(form, "id"), objectiveInput(form)));
 }
-
-export async function createKeyResultAction(formData: FormData) {
-  await requireWriter();
-  const objectiveId = text(formData, "objectiveId");
-  const title = text(formData, "title");
-  const unit = text(formData, "unit") || "%";
-  const currentValue = numberValue(formData, "currentValue");
-  const targetValue = numberValue(formData, "targetValue");
-  const baselineValue = numberValue(formData, "baselineValue");
-  const direction = text(formData, "direction") || "INCREASE";
-  const validRange = direction === "DECREASE" ? baselineValue > targetValue : direction === "INCREASE" && baselineValue < targetValue;
-
-  if (!validRange) redirect("/okrs?error=range");
-  if (!objectiveId || !title) return;
-
-  await prisma.keyResult.create({
-    data: { objectiveId, title, unit, currentValue, targetValue, baselineValue, direction },
-  });
-  revalidatePath("/", "layout");
+export async function deleteObjectiveAction(form: FormData) {
+  await okrWrite(actor => deleteObjective(prisma, actor, text(form, "id")));
 }
-
-export async function updateKeyResultAction(formData: FormData) {
-  await requireWriter();
-  const id = text(formData, "id");
-  const title = text(formData, "title");
-  const unit = text(formData, "unit") || "%";
-  const currentValue = numberValue(formData, "currentValue");
-  const targetValue = numberValue(formData, "targetValue");
-  const baselineValue = numberValue(formData, "baselineValue");
-  const direction = text(formData, "direction") || "INCREASE";
-  const validRange = direction === "DECREASE" ? baselineValue > targetValue : direction === "INCREASE" && baselineValue < targetValue;
-
-  if (!validRange) redirect("/okrs?error=range");
-  if (!id || !title) return;
-
-  await prisma.keyResult.update({
-    where: { id },
-    data: { title, unit, currentValue, targetValue, baselineValue, direction },
-  });
-  revalidatePath("/", "layout");
+export async function createKeyResultAction(form: FormData) {
+  await okrWrite(actor => createKeyResult(prisma, actor, text(form, "objectiveId"), keyResultInput(form)));
 }
-
-export async function deleteKeyResultAction(formData: FormData) {
-  await requireWriter();
-  const id = text(formData, "id");
-  if (!id) {
-    return;
-  }
-  await prisma.keyResult.delete({ where: { id } });
-  revalidatePath("/", "layout");
+export async function updateKeyResultAction(form: FormData) {
+  await okrWrite(actor => updateKeyResult(prisma, actor, text(form, "id"), keyResultInput(form)));
+}
+export async function deleteKeyResultAction(form: FormData) {
+  await okrWrite(actor => deleteKeyResult(prisma, actor, text(form, "id")));
 }
 
 export async function saveTaskAction(_state: ActionState, formData: FormData): Promise<ActionState> {

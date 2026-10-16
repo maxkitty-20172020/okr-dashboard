@@ -1,3 +1,4 @@
+import { okrErrorMessages } from "@/lib/okr-service";
 import { OkrBoard } from "@/components/okr-board";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -18,7 +19,7 @@ export default async function OkrsPage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="mx-auto max-w-6xl">
-      {params.error && <p className="form-error" role="alert">{params.error === "range" ? "目标方向与起点不一致：提升的目标须高于起点，降低的目标须低于起点。修改未保存。" : "请填写有效的起点值、当前值和目标值。修改未保存。"}</p>}
+      {params.error && <p className="form-error" role="alert">{Object.hasOwn(okrErrorMessages, params.error) ? okrErrorMessages[params.error as keyof typeof okrErrorMessages] : "修改未保存，请刷新页面后重试。"}</p>}
       <OkrBoard
         currentUserId={session.id}
         users={users}
