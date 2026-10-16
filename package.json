@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "db:backfill": "tsx prisma/backfill.ts",
     "db:setup": "prisma migrate dev --name init && prisma db seed",
     "test": "tsx --test tests/*.test.ts"
   },

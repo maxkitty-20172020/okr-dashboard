@@ -1,5 +1,5 @@
-import { backfillObjectivePeriods, ensurePeriodTree, type PeriodClient } from "./period";
-import { backfillTaskRaci } from "./raci";
+import { type PeriodClient } from "./period";
+import { executeFoundationPlan, planFoundationBackfill } from "./foundation-backfill";
 
 export async function backfillDeliverablesFromCollaborators(db: PeriodClient) {
   const collaborators = await db.taskCollaborator.findMany();
@@ -23,8 +23,5 @@ export async function backfillDeliverablesFromCollaborators(db: PeriodClient) {
 }
 
 export async function applyFoundationBackfill(db: PeriodClient) {
-  await ensurePeriodTree(db);
-  await backfillObjectivePeriods(db);
-  await backfillTaskRaci(db);
-  await backfillDeliverablesFromCollaborators(db);
+  return executeFoundationPlan(db, await planFoundationBackfill(db));
 }
