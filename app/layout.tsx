@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "运营部 · 任务与进展",
+  title: "运营部 · 事项与进展",
   description: "持续跟进部门事项、分工与协作进展",
 };
 

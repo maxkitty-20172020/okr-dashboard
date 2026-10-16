@@ -1,3 +1,6 @@
+import { formatPeriod, formatMetric } from "@/lib/display";
+import { QuarterField } from "@/components/quarter-field";
+import { Disclosure } from "@/components/ui/disclosure";
 import type { KeyResult, Objective, User } from "@prisma/client";
 import Link from "next/link";
 import { createKeyResultAction, createObjectiveAction, deleteKeyResultAction, deleteObjectiveAction, updateKeyResultAction, updateObjectiveAction } from "@/lib/actions";
@@ -14,8 +17,8 @@ function ObjectiveFields({ objective, users, cycle, ownerId }: { objective?: Obj
   return <div className="fields">
     <Field className="span-all" label="目标" help="写这个季度最重要的结果。"><input name="title" required defaultValue={objective?.title} placeholder="例：提高核心产品的盈利能力" /></Field>
     <Field className="span-all" label="说明" help="补充为什么做、希望带来什么变化。"><textarea name="description" rows={2} defaultValue={objective?.description} placeholder="例：优化产品结构，减少低效投入" /></Field>
-    <Field label="周期" help="填写目标所属季度。"><input name="cycle" required defaultValue={objective?.cycle ?? cycle} placeholder="例：2026-Q4" /></Field>
-    <ChoiceChips name="ownerId" legend="负责人" help="选择维护这个目标的人。例：李明。" defaultValue={objective?.ownerId ?? ownerId} options={users.map(user => ({ value: user.id, label: user.name }))} />
+    <QuarterField cycle={objective?.cycle ?? cycle} />
+    <ChoiceChips name="ownerId" legend="负责人" help="选择维护这个目标的人。" defaultValue={objective?.ownerId ?? ownerId} options={users.map(user => ({ value: user.id, label: user.name }))} />
   </div>;
 }
 function KeyResultFields({ result }: { result?: KeyResult }) {
@@ -30,22 +33,21 @@ function KeyResultFields({ result }: { result?: KeyResult }) {
 }
 export function OkrBoard({ currentUserId, users, objectives, cycle, readOnly = false }: { currentUserId: string; users: User[]; objectives: ObjectiveRow[]; cycle: string; readOnly?: boolean }) {
   return <div className="page">
-    <header className="page-heading"><div><p className="eyebrow">经营结果 · {cycle}</p><h1>目标</h1><p className="muted">先写目标，再补可量化的关键结果。打开目标查看为它推进的事项。</p></div>{readOnly && <span className="readonly-label">只看不改</span>}</header>
-    {!readOnly && <details className="surface detail-section edit-disclosure"><summary>＋ 新增目标</summary><form action={createObjectiveAction}><ObjectiveFields users={users} cycle={cycle} ownerId={currentUserId} /><div className="form-actions"><Button size="lg">保存目标</Button></div></form></details>}
+    <header className="page-heading"><div><p className="eyebrow">经营结果 · {formatPeriod(cycle)}</p><h1>目标</h1><p className="muted">先写目标，再补可量化的关键结果。打开目标查看为它推进的事项。</p></div>{!readOnly && <Disclosure className="objective-create edit-disclosure" title={<>＋ 新增目标</>}><form action={createObjectiveAction}><ObjectiveFields users={users} cycle={cycle} ownerId={currentUserId} /><div className="form-actions"><Button size="lg">保存目标</Button></div></form></Disclosure>}</header>
     {objectives.length > 0 && <div className="goal-grid section-block">{objectives.map(objective => <article className="surface detail-section objective-card" key={objective.id}>
-      <p className="muted small">{objective.cycle} · {objective.owner.name}</p>
+      <p className="muted small">{formatPeriod(objective.cycle)} · {objective.owner.name}</p>
       <h2><Link href={`/okrs/${objective.id}`}>{objective.title}</Link></h2>
       {objective.description && <p className="section-help">{objective.description}</p>}
-      <ProgressBar value={keyResultAchievementRate(objective.keyResults)} />
+      {objective.keyResults.length > 1 && <ProgressBar value={keyResultAchievementRate(objective.keyResults)} />}
       <div className="section-heading"><p className="muted small">业务指标达成度 {Math.round(keyResultAchievementRate(objective.keyResults))}%</p><StatusBadge>关联事项 {objectiveTaskCount(objective.keyResults)}</StatusBadge></div>
-      {objective.keyResults.length > 0 && <ul className="goal-kr-list">{objective.keyResults.map(result => <li key={result.id}><div><strong>{result.title}</strong><p className="muted small">当前 {result.currentValue} / 目标 {result.targetValue} {result.unit} · 起点 {result.baselineValue} · {result.direction === "DECREASE" ? "降低" : "提升"}</p><ProgressBar value={progressPercent(result.currentValue, result.targetValue, result.baselineValue, result.direction)} /></div></li>)}</ul>}
+      {objective.keyResults.length > 0 && <ul className="goal-kr-list">{objective.keyResults.map(result => <li key={result.id}><div><strong>{result.title}</strong><p className="muted small">当前 {formatMetric(result.currentValue, result.unit)} / 目标 {formatMetric(result.targetValue, result.unit)} · 起点 {formatMetric(result.baselineValue, result.unit)} · {result.direction === "DECREASE" ? "降低" : "提升"}</p><ProgressBar value={progressPercent(result.currentValue, result.targetValue, result.baselineValue, result.direction)} /></div></li>)}</ul>}
       <Link className="text-link" href={`/okrs/${objective.id}`}>查看事项与进展 →</Link>
-      {!readOnly && <details className="edit-disclosure"><summary>编辑目标与关键结果</summary>
+      {!readOnly && <Disclosure className="edit-disclosure" title={<>编辑目标与关键结果</>}>
         <form action={updateObjectiveAction}><input type="hidden" name="id" value={objective.id} /><ObjectiveFields objective={objective} users={users} cycle={cycle} ownerId={currentUserId} /><div className="form-actions"><Button>更新目标</Button></div></form>
         <form action={deleteObjectiveAction} className="form-actions"><input type="hidden" name="id" value={objective.id} /><Button variant="danger">删除这个目标及其关键结果</Button></form>
-        {objective.keyResults.map(result => <details key={result.id} className="edit-disclosure"><summary>{result.title}</summary><form action={updateKeyResultAction}><input type="hidden" name="id" value={result.id} /><KeyResultFields result={result} /><div className="form-actions"><Button>更新关键结果</Button></div></form><form action={deleteKeyResultAction} className="form-actions"><input type="hidden" name="id" value={result.id} /><Button variant="danger">删除关键结果</Button></form></details>)}
-        <details className="edit-disclosure"><summary>＋ 添加关键结果</summary><form action={createKeyResultAction}><input type="hidden" name="objectiveId" value={objective.id} /><KeyResultFields /><div className="form-actions"><Button variant="secondary">添加关键结果</Button></div></form></details>
-      </details>}
+        {objective.keyResults.map(result => <Disclosure key={result.id} className="edit-disclosure" title={<>{result.title}</>}><form action={updateKeyResultAction}><input type="hidden" name="id" value={result.id} /><KeyResultFields result={result} /><div className="form-actions"><Button>更新关键结果</Button></div></form><form action={deleteKeyResultAction} className="form-actions"><input type="hidden" name="id" value={result.id} /><Button variant="danger">删除关键结果</Button></form></Disclosure>)}
+        <Disclosure className="edit-disclosure" title={<>＋ 添加关键结果</>}><form action={createKeyResultAction}><input type="hidden" name="objectiveId" value={objective.id} /><KeyResultFields /><div className="form-actions"><Button variant="secondary">添加关键结果</Button></div></form></Disclosure>
+      </Disclosure>}
     </article>)}</div>}
     {!objectives.length && <p className="lane-empty section-block">还没有设置目标与关键结果。</p>}
   </div>;

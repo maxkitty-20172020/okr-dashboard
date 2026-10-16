@@ -85,7 +85,7 @@ export async function disableMember(db: PrismaClient, actor: Actor, id: string) 
     const user = await target(tx, id);
     if (id === actor.id) throw new MemberError("不能停用自己，至少保留 1 位未停用的老板");
     const count = await tx.task.count({ where: { ownerId: id, ...unfinishedTasks } });
-    if (count) throw new MemberError(`请先移交 ${count} 项未结束任务`);
+    if (count) throw new MemberError(`请先移交 ${count} 项未结束事项`);
     return tx.user.update({ where: { id }, data: { disabledAt: new Date(),
       // Advance the session revocation boundary so enabling never revives old cookies.
       passwordChangedAt: passwordChangeTime(user.passwordChangedAt) } });

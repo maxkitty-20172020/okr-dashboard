@@ -56,7 +56,7 @@ export async function loadOverview(db: CheckInClient, user: Member, params: Sear
   const completion = taskCompletionRate(tasks);
   const achievement = keyResultAchievementRate(keyResults);
   const boss = user.role === "BOSS";
-  const kindHelp = search.kind === "WEEK" ? "本周按任务范围汇报。" : search.kind === "MONTH" ? "本月按关键结果复盘。" : "本季按目标评估。";
+  const kindHelp = search.kind === "WEEK" ? "本周按事项范围汇报。" : search.kind === "MONTH" ? "本月按关键结果复盘。" : "本季按目标评估。";
 
   const objectiveViews = new Map(objectives.map(objective => [objective.id, {
     rate: keyResultAchievementRate(objective.keyResults),

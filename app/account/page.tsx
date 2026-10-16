@@ -1,3 +1,4 @@
+import { displayAccount } from "@/lib/display";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { logoutAction } from "@/lib/actions";
@@ -18,7 +19,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
     <header className="page-heading"><div><p className="eyebrow">我的账号</p><h1>我的</h1></div></header>
     {user.mustChangePassword && <Notice tone="risk">首次登录或密码已被重置，请先设置新密码</Notice>}
     {params.changed === "1" && <Notice tone="ok">密码已修改，其他设备的会话已失效。</Notice>}
-    <section className="surface detail-section"><div className="section-heading"><div className="person-name"><span className="avatar">{user.name.slice(-1)}</span><h2>{user.name}</h2></div><StatusBadge>{user.role === "BOSS" ? "只看不改" : "填报成员"}</StatusBadge></div><p className="member-login muted">{user.email}</p></section>
+    <section className="surface detail-section"><div className="section-heading"><div className="person-name"><span className="avatar">{user.name.slice(-1)}</span><h2>{user.name}</h2></div><StatusBadge>{user.role === "BOSS" ? "老板" : "填报成员"}</StatusBadge></div><p className="member-login muted">{displayAccount(user.email)}</p></section>
     <section className="surface detail-section"><h2>修改密码</h2><p className="section-help">新密码 8–72 个字符，不能和当前密码一样。</p><ActionForm action={changeOwnPasswordAction} label="修改密码"><div className="fields">
       <Field label="当前密码" help="填写现在使用的密码。"><input type="password" name="currentPassword" required autoComplete="current-password" placeholder="例：当前登录密码" /></Field>
       <Field label="新密码" help="设置一个与当前不同的新密码。"><input type="password" name="newPassword" required autoComplete="new-password" placeholder="例：至少 8 位新密码" /></Field>

@@ -25,7 +25,7 @@ export const periodKindLabels: Record<PeriodKind, string> = {
 };
 
 export const scopeTypeLabels: Record<CheckInScopeType, string> = {
-  TASK: "任务",
+  TASK: "事项",
   KEY_RESULT: "关键结果",
   OBJECTIVE: "目标",
   DEPT: "部门",

@@ -1,6 +1,6 @@
 import { canViewTask, TASK_NOT_VISIBLE } from "./task-visibility";
 import { Prisma, PrismaClient, TaskArea, TaskHealth, TaskStatus } from "@prisma/client";
-import { closed, dateValue, snapshot, taskInclude, today, type Member } from "./tasks";
+import { closed, dateLabel, dateValue, snapshot, taskInclude, today, type Member } from "./tasks";
 import { ensurePeriodTree } from "./period";
 import { assignRaci, ensureTaskRaciDefaults } from "./raci";
 
@@ -51,7 +51,7 @@ export async function writableUser(db: PrismaClient, actor: Member) {
 }
 async function member(tx: Prisma.TransactionClient, id: string) {
   const u = await tx.user.findUnique({ where: { id } });
-  if (!u || u.disabledAt || u.role === "BOSS") throw new TaskError("请选择一位未停用的填报成员，老板不参与任务填报。");
+  if (!u || u.disabledAt || u.role === "BOSS") throw new TaskError("请选择一位未停用的填报成员，老板不参与事项填报。");
   return u;
 }
 async function basicData(tx: Prisma.TransactionClient, form: FormData, defaultOwner = "") {
@@ -64,7 +64,7 @@ async function basicData(tx: Prisma.TransactionClient, form: FormData, defaultOw
   if (![0, 1, 2].includes(priority)) throw new TaskError("优先级无效。");
   const dueAt = date(form, "dueAt", "完成期限");
   return {
-    title: required(form, "title", "任务名称", 160),
+    title: required(form, "title", "事项名称", 160),
     completionCriteria: required(form, "completionCriteria", "完成标准"),
     area: option(value(form, "area") || "OTHER", TaskArea, "责任领域"),
     kind: dueAt ? "SHORT_TERM" as const : "LONG_TERM" as const,
@@ -84,7 +84,7 @@ export async function createTask(db: PrismaClient, actor: Member, form: FormData
       }
     );
     await ensureTaskRaciDefaults(tx, task);
-    await tx.taskUpdate.create({ data: { taskId: task.id, authorId: user.id, kind: "CREATED", body: "创建任务，明确负责人和完成标准。", snapshot: snapshot(task) } });
+    await tx.taskUpdate.create({ data: { taskId: task.id, authorId: user.id, kind: "CREATED", body: "创建事项，明确负责人和完成标准。", snapshot: snapshot(task) } });
     return task.id;
   });
 }
@@ -103,21 +103,21 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
     ? await db.user.findUnique({ where: { id: actor.id }, select: { id: true, name: true, role: true, disabledAt: true } })
     : await writableUser(db, actor);
   if (!user || user.disabledAt || (operation === "transfer" && user.role !== "BOSS")) throw new TaskError("只有老板可以移交负责人。");
-  const id = required(form, "taskId", "任务", 100);
-  const rawVersion = required(form, "version", "任务版本", 20);
+  const id = required(form, "taskId", "事项", 100);
+  const rawVersion = required(form, "version", "事项版本", 20);
   const version = Number(rawVersion);
-  if (!Number.isSafeInteger(version) || version < 0) throw new TaskError("任务版本无效，请刷新页面。");
+  if (!Number.isSafeInteger(version) || version < 0) throw new TaskError("事项版本无效，请刷新页面。");
   return db.$transaction(async tx => {
     const task = await tx.task.findUnique({ where: { id }, include: { ...taskInclude, updates: { where: { kind: "CREATED" }, select: { kind: true, authorId: true } } } });
     if (!task || !canViewTask(user, task)) throw new TaskError(TASK_NOT_VISIBLE);
-    if (task.version !== version) throw new TaskError("这条任务刚被其他人更新，请刷新页面后再提交；本次修改未写入。");
-    if (task.archivedAt && operation !== "restore" && operation !== "transfer") throw new TaskError("请先恢复归档任务，再进行修改。");
+    if (task.version !== version) throw new TaskError("这条事项刚被其他人更新，请刷新页面后再提交；本次修改未写入。");
+    if (task.archivedAt && operation !== "restore" && operation !== "transfer") throw new TaskError("请先恢复归档事项，再进行修改。");
     const ownerOnly = ["details", "archive", "restore", "progress", "collaborator", "removeCollaborator", "milestone", "toggleMilestone"];
     if (ownerOnly.includes(operation) && task.ownerId !== user.id) throw new TaskError("这项操作需要由主负责人完成。");
     if (closed(task)
       && ["collaborator", "removeCollaborator", "contribution", "milestone", "toggleMilestone"].includes(
         operation
-      )) throw new TaskError("任务已经结束，请由主负责人重新开启后再更新协作或节点。");
+      )) throw new TaskError("事项已经结束，请由主负责人重新开启后再更新协作或节点。");
     let data: Prisma.TaskUpdateInput = {};
     let kind = "DETAILS";
     let body = "";
@@ -150,7 +150,7 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
         owner: { connect: { id: ownerId } },
         keyResult: keyResultId ? { connect: { id: keyResultId } } : { disconnect: true }
       };
-      body = `调整任务资料或分工。原负责人：${task.owner.name}；原完成期限：${dateValue(task.dueAt) || "未设置"}。`;
+      body = `调整事项资料或分工。原负责人：${task.owner.name}；原完成期限：${dateLabel(task.dueAt)}。`;
     } else if (operation === "progress") {
       const mood = value(form, "mood");
       const moods = {
@@ -164,8 +164,8 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       if (form.has("mood") && mood !== "same" && !Object.hasOwn(moods, mood)) throw new TaskError("现在怎么样选项无效，请重新选择。");
       const mapped = moods[mood as keyof typeof moods];
       const noChange = form.has("mood") ? mood === "same" : value(form, "updateKind") === "NO_CHANGE";
-      if (noChange && closed(task)) throw new TaskError("已结束任务无需确认暂无变化。");
-      const status = noChange ? task.status : mapped?.status ?? option(value(form, "status"), TaskStatus, "任务状态");
+      if (noChange && closed(task)) throw new TaskError("已结束事项无需确认暂无变化。");
+      const status = noChange ? task.status : mapped?.status ?? option(value(form, "status"), TaskStatus, "事项状态");
       const ending = closed({ status });
       const selectedHealth = noChange ? task.health : mapped?.health ?? option(value(form, "health"), TaskHealth, "风险情况");
       const health = status === "BLOCKED" ? TaskHealth.AT_RISK : selectedHealth;
@@ -205,10 +205,10 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
         }
       );
       await assignRaci(tx, { subjectType: "TASK", subjectId: id, userId, role: "C" });
-      kind = "COLLABORATION"; body = `安排 ${collaborator.name} 协作：${deliverable}；期限：${dateValue(dueAt) || "未设置"}。`;
+      kind = "COLLABORATION"; body = `安排 ${collaborator.name} 协作：${deliverable}；期限：${dateLabel(dueAt)}。`;
     } else if (operation === "contribution") {
       const c = task.collaborators.find(c => c.userId === user.id);
-      if (!c) throw new TaskError("只有此任务的协作者可以更新自己的交付。");
+      if (!c) throw new TaskError("只有此事项的协作者可以更新自己的交付。");
       const note = required(form, "note", "协作进展");
       const done = value(form, "done") === "true";
       await tx.taskCollaborator.update({ where: { id: c.id }, data: { done, note } });
@@ -223,22 +223,22 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       const title = required(form, "milestoneTitle", "节点名称", 160);
       const dueAt = date(form, "milestoneDueAt", "节点日期");
       await tx.taskMilestone.create({ data: { taskId: id, title, dueAt } });
-      kind = "MILESTONE"; body = `新增节点：${title}；日期：${dateValue(dueAt) || "未设置"}。`;
+      kind = "MILESTONE"; body = `新增节点：${title}；日期：${dateLabel(dueAt)}。`;
     } else if (operation === "toggleMilestone") {
       const m = task.milestones.find(m => m.id === value(form, "milestoneId", 100));
       if (!m) throw new TaskError("节点已不存在。");
       await tx.taskMilestone.update({ where: { id: m.id }, data: { done: !m.done } });
       kind = "MILESTONE"; body = `${m.done ? "重新开启" : "完成"}节点：${m.title}。`;
     } else if (operation === "archive") {
-      if (!closed(task)) throw new TaskError("请先完成或取消任务，再归档。");
-      data = { archivedAt: new Date() }; kind = "ARCHIVED"; body = "归档任务，保留进展与协作历史。";
+      if (!closed(task)) throw new TaskError("请先完成或取消事项，再归档。");
+      data = { archivedAt: new Date() }; kind = "ARCHIVED"; body = "归档事项，保留进展与协作历史。";
     } else if (operation === "restore") {
-      if (!task.archivedAt) throw new TaskError("任务没有归档。");
-      data = { archivedAt: null }; kind = "RESTORED"; body = "恢复归档任务，原状态保留。";
+      if (!task.archivedAt) throw new TaskError("事项没有归档。");
+      data = { archivedAt: null }; kind = "RESTORED"; body = "恢复归档事项，原状态保留。";
     }
     // Compare-and-swap protects concurrent forms; every mutation and its audit record commit together.
     const lock = await tx.task.updateMany({ where: { id, version }, data: { version: { increment: 1 } } });
-    if (lock.count !== 1) throw new TaskError("任务已被更新，请刷新页面后重试。");
+    if (lock.count !== 1) throw new TaskError("事项已被更新，请刷新页面后重试。");
     const updated = await tx.task.update({ where: { id }, data, include: { owner: true } });
     await tx.taskUpdate.create({ data: { taskId: id, authorId: user.id, kind, body, snapshot: snapshot(updated) } });
     if (progressReport) {

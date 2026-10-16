@@ -92,7 +92,7 @@ export async function saveTaskAction(_state: ActionState, formData: FormData): P
   } catch (error) {
     if (error instanceof TaskError) return { error: error.message };
     console.error("Task creation failed", error instanceof Error ? error.name : "Unknown error");
-    return { error: "任务保存失败，请稍后重试。" };
+    return { error: "事项保存失败，请稍后重试。" };
   }
   revalidatePath("/", "layout");
   redirect(`/tasks/${id}?created=1`);

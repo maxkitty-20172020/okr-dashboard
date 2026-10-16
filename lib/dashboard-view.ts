@@ -69,7 +69,7 @@ export function dashboardHeadline(tasks: import("./tasks").TaskRow[], user: Memb
   const deliveries = lanes.deliveries.map(task => ({ task, contribution: task.collaborators.find(c => c.active && c.userId === user.id && !c.done)! }))
     .sort((a, b) => (a.contribution.dueAt?.getTime() ?? Infinity) - (b.contribution.dueAt?.getTime() ?? Infinity));
   const first = deliveries[0];
-  const delivery = first ? `${first.task.owner.name} 在等你的「${first.contribution.deliverable}」${deliveries.length > 1 ? `，还有 ${deliveries.length - 1} 项等你交付` : ""}。` : "";
+  const delivery = first ? `${first.task.owner.name}在等你的「${first.contribution.deliverable}」${deliveries.length > 1 ? `，还有 ${deliveries.length - 1} 项等你交付` : ""}。` : "";
   if (lanes.first.length) return { text: `今天有 ${lanes.first.length} 件事要跟进。${delivery}`, supplement: "" };
   if (first) return { text: `今天没有到期的跟进，${delivery}`, supplement: "" };
   return { text: "今天没有要跟进的事。", supplement: "可以推进还没定期限的事项。" };

@@ -1,3 +1,4 @@
+import { formatPeriod, formatMetric } from "@/lib/display";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -27,14 +28,12 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
     <Link className="back-link" href={backHref}>← 返回每周进展</Link>
     <header className="page-heading detail-heading">
       <div>
-        <p className="eyebrow">{objective.cycle} · {objective.owner.name}{objective.period ? ` · ${objective.period.label}` : ""}</p>
+        <p className="eyebrow">{formatPeriod(objective.cycle)} · {objective.owner.name}{objective.period ? ` · ${formatPeriod(objective.period.label)}` : ""}</p>
         <h1>{objective.title}</h1>
         <p className="muted">{objective.description || "查看关键结果，以及为这个目标推进的事项。"}</p>
       </div>
       {
-        user.role === "BOSS"
-          ? <span className="readonly-label">只看不改</span>
-          : <span className={
+        user.role !== "BOSS" && <span className={
             `badge ${objectiveState === "UNREPORTED" ? "amber" : objectiveState === "NO_CHANGE" ? "accent" : "good"}`
           }>
             {reportStateLabel(objectiveState, "OBJECTIVE")}
@@ -43,13 +42,13 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
     </header>
 
     <section className="stats-grid" aria-label="目标达成">
-      <div className="stat"><span>业务指标达成度</span><strong>{Math.round(achievement)}%</strong><small>按指标进度，不是任务完成率</small></div>
-      <Link className="stat" href={hrefWithOverview("/tasks", periodSearch)}><span>关联任务</span><strong>{tasks.length}</strong><small>含例行任务以外的目标事项</small></Link>
+      <div className="stat"><span>业务指标达成度</span><strong>{Math.round(achievement)}%</strong><small>按指标进度，不是事项完成率</small></div>
+      <Link className="stat" href={hrefWithOverview("/tasks", periodSearch)}><span>关联事项</span><strong>{tasks.length}</strong><small>含例行事项以外的目标事项</small></Link>
       <div className="stat"><span>交付物</span><strong>{deliverables.length}</strong><small>事项下的交付记录</small></div>
       <div className="stat">
         <span>本周期汇报</span>
         <strong>{reportStateLabel(objectiveState, "OBJECTIVE")}</strong>
-        <small>{periodKindLabels[tree.selected.kind]} {tree.selected.label}</small>
+        <small>{periodKindLabels[tree.selected.kind]} {formatPeriod(tree.selected.label)}</small>
       </div>
     </section>
 
@@ -63,13 +62,13 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
     }
 
     {(tasks.length > 0 || deliverables.length > 0) && <section className="section-block">
-      <div className="section-heading"><h2>为这个目标在推进的事项</h2><Link href={hrefWithOverview("/tasks", periodSearch)}>任务清单 →</Link></div>
+      <div className="section-heading"><h2>为这个目标在推进的事项</h2><Link href={hrefWithOverview("/tasks", periodSearch)}>事项清单 →</Link></div>
       {
         tasks.length
           ? <div className="task-grid">
             {tasks.map(task => <TaskCard key={task.id} task={task} query={query} description={task.riskNote || task.latestProgress} />)}
           </div>
-          : <p className="empty-inline">还没有挂到这个目标下的任务。</p>
+          : <p className="empty-inline">还没有挂到这个目标下的事项。</p>
       }
       {
         deliverables.length > 0
@@ -105,11 +104,11 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
           </div>
           <p className="muted small">
             {keyResult.direction === "DECREASE" ? "降低" : "提升"} · 当前 {
-              keyResult.currentValue
-            } / 目标 {keyResult.targetValue} {keyResult.unit} · 起点 {keyResult.baselineValue}
+              formatMetric(keyResult.currentValue, keyResult.unit)
+            } / 目标 {formatMetric(keyResult.targetValue, keyResult.unit)} · 起点 {formatMetric(keyResult.baselineValue, keyResult.unit)}
           </p>
           <ProgressBar value={progress} />
-          <p className="muted small">关联任务 {related.length} · 工作包 {keyResult.workPackages.length}</p>
+          <p className="muted small">关联事项 {related.length} · 工作包 {keyResult.workPackages.length}</p>
           {krFlags[index] && <CheckInForm periodId={tree.selected.id} scopeType="KEY_RESULT" scopeId={keyResult.id} compact />}
         </article>;
       })}</div>
@@ -126,7 +125,7 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
                 <p className="muted small">
                   {timeLabel(item.createdAt)} · {
               item.author.name
-            } · {item.scopeType === "OBJECTIVE" ? "目标" : "关键结果"} · {periodKindLabels[item.period.kind]} {item.period.label}
+            } · {item.scopeType === "OBJECTIVE" ? "目标" : "关键结果"} · {periodKindLabels[item.period.kind]} {formatPeriod(item.period.label)}
                 </p>
                 <span className="history-kind">{checkInStateLabels[item.status]}</span>
                 <p className="history-body">{item.body}</p>

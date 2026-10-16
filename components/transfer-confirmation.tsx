@@ -12,8 +12,8 @@ export function TaskDetailsForm(props: ComponentProps<typeof TaskFields> & { tas
   return <div onChange={event => {
     const input = event.target as HTMLInputElement;
     if (input.name === "ownerId") setNextOwner(input.value);
-  }}><ActionForm action={taskMutationAction} label="修改任务资料"><input type="hidden" name="taskId" value={props.task.id} /><input type="hidden" name="version" value={props.task.version} /><input type="hidden" name="operation" value="details" /><TaskFields {...props} />
+  }}><ActionForm action={taskMutationAction} label="修改事项资料"><input type="hidden" name="taskId" value={props.task.id} /><input type="hidden" name="version" value={props.task.version} /><input type="hidden" name="operation" value="details" /><TaskFields {...props} />
     <div className={`transfer-confirmation ${changed ? "is-changing" : ""}`}><label><input key={nextOwner} type="checkbox" required={changed} />确定移交给【<span>{name}</span>】吗？移交后你将不再负责更新进展。</label></div>
-    <noscript><p className="section-help">如变更了负责人，请勾选确认移交：移交后你将不再负责更新进展。</p><label><input type="checkbox" required />我已确认任务资料及负责人；如果移交，原负责人将不再负责更新进展。</label></noscript>
-    <div className="form-actions"><Button>保存任务资料</Button></div></ActionForm></div>;
+    <noscript><p className="section-help">如变更了负责人，请勾选确认移交：移交后你将不再负责更新进展。</p><label><input type="checkbox" required />我已确认事项资料及负责人；如果移交，原负责人将不再负责更新进展。</label></noscript>
+    <div className="form-actions"><Button>保存事项资料</Button></div></ActionForm></div>;
 }
