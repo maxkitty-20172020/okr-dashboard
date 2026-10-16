@@ -22,8 +22,12 @@ function numberValue(formData: FormData, key: string) {
   return value;
 }
 
+function compact(raw: string) {
+  return raw.normalize("NFKC").replace(/[\u200b-\u200d\ufeff]/g, "").trim();
+}
+
 function normalizeLogin(raw: string) {
-  const value = raw.toLowerCase();
+  const value = compact(raw).replace(/\s+/g, "").toLowerCase();
   if (!value) {
     return value;
   }
@@ -32,7 +36,7 @@ function normalizeLogin(raw: string) {
 
 export async function loginAction(_prev: { error?: string } | null, formData: FormData) {
   const email = normalizeLogin(text(formData, "email"));
-  const password = String(formData.get("password") ?? "");
+  const password = compact(String(formData.get("password") ?? ""));
 
   if (!email || !password) {
     return { error: "请输入账号和密码" };
