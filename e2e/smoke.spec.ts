@@ -45,7 +45,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
     await page.goto("/tasks/new");
     await expect(page).not.toHaveURL(/\/tasks\/new$/);
 
-    // 2) 检查任务详情页展示「老板账号 · 只读」且不提供进展更新或 Check-in 表单
+    // 2) 检查任务详情页展示「只看不改」且不提供进展更新或 Check-in 表单
     await page.goto("/tasks");
     const firstTask = page.locator('a[href^="/tasks/"]').first();
     await firstTask.click();
@@ -55,8 +55,8 @@ test.describe("自动化冒烟测试与权限边界", () => {
 
     // 3) 检查目标看板 /okrs 为只读，无新增 Objective 表单
     await page.goto("/okrs");
-    await expect(page.locator('form:has-text("新增 Objective")')).toHaveCount(0);
-    await expect(page.locator(".readonly-label")).toContainText("老板账号 · 只读");
+    await expect(page.locator('form:has-text("保存目标")')).toHaveCount(0);
+    await expect(page.locator(".readonly-label")).toContainText("只看不改");
   });
 
   // 3. 成员创建任务并更新进展
@@ -108,7 +108,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
     await page.goto("/overview?kind=WEEK");
 
     // 获取当前待我汇报的项
-    const unreportedCards = page.locator(".unreported-list article");
+    const unreportedCards = page.locator(".pending-group .ui-task-card:has(button)");
     const countBefore = await unreportedCards.count();
 
     if (countBefore > 0) {
@@ -120,7 +120,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
       await page.waitForTimeout(1000);
 
       // 验证未汇报项数量减少或已不再包含刚提交的表单
-      const countAfter = await page.locator(".unreported-list article").count();
+      const countAfter = await page.locator(".pending-group .ui-task-card:has(button)").count();
       expect(countAfter).toBeLessThan(countBefore);
     }
   });

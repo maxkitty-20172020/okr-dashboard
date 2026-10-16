@@ -6,7 +6,7 @@ async function login(page: Page, email: string, password: string, destination = 
   await page.locator('input[name="password"]').fill(password);
   await Promise.all([
     page.waitForURL(url => url.pathname === destination),
-    page.getByRole("button", { name: "进入面板" }).click(),
+    page.getByRole("button", { name: "进入看板" }).click(),
   ]);
 }
 async function changePassword(page: Page, current: string, next: string) {
@@ -25,6 +25,7 @@ test("老板建成员 → 强制改密 → 工作台 → 重置会话失效 → 
   await login(page, "okr", "okr12345");
   await page.getByRole("link", { name: "成员", exact: true }).click();
   const account = `member-e2e-${Date.now()}`;
+  await page.getByText("＋ 新增成员", { exact: true }).click();
   const create = page.getByRole("form", { name: "新增成员", exact: true });
   await create.locator('[name="name"]').fill("测试成员");
   await create.locator('[name="login"]').fill(account);
@@ -63,7 +64,8 @@ test("老板建成员 → 强制改密 → 工作台 → 重置会话失效 → 
       await other.goto("/"); await expect(other).toHaveURL(/\/login$/);
     } finally { await otherContext.close(); }
 
-    await row.locator("summary").click();
+    await row.getByLabel("管理 测试成员", { exact: true }).click();
+    await row.getByText("重置密码", { exact: true }).click();
     const reset = row.getByRole("form", { name: `重置密码 ${account}@okr.local`, exact: true });
     await reset.locator('[name="password"]').fill("ResetTemp123");
     await reset.getByRole("button", { name: "设置临时密码" }).click();
@@ -78,10 +80,10 @@ test("老板建成员 → 强制改密 → 工作台 → 重置会话失效 → 
     for (let attempt = 1; attempt <= 5; attempt++) {
       await member.locator('[name="email"]').fill(account);
       await member.locator('[name="password"]').fill("MemberFinal123");
-      await member.getByRole("button", { name: "进入面板" }).click();
-      await expect(member.locator(".text-danger")).toHaveText(attempt === 5 ? "登录失败次数过多，请 10 分钟后重试" : "账号或密码不正确");
+      await member.getByRole("button", { name: "进入看板" }).click();
+      await expect(member.locator(".ui-notice[role=alert]")).toHaveText(attempt === 5 ? "登录失败次数过多，请 10 分钟后重试" : "账号或密码不正确");
       await expect(member).toHaveURL(/\/login$/);
-      await expect(member.getByRole("button", { name: "进入面板" })).toBeEnabled();
+      await expect(member.getByRole("button", { name: "进入看板" })).toBeEnabled();
     }
   } finally { await context.close(); }
 });

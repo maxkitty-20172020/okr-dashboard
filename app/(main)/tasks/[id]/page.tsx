@@ -151,7 +151,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
             </span>
           </div>
           <p className="section-help">
-            {writable ? "只有主责汇报人或督办确认人可以提交本任务的周期汇报。" : "老板账号只读，不提交汇报。"}
+            {writable ? "只有主责汇报人或督办确认人可以提交本任务的周期汇报。" : "只看不改，无需提交汇报。"}
           </p>
         </section>
       }

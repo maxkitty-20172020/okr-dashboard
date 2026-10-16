@@ -4,7 +4,7 @@ async function login(page: Page) {
   await page.goto("/login");
   await page.locator('[name="email"]').fill("okr1");
   await page.locator('[name="password"]').fill("okr12345");
-  await page.getByRole("button", { name: "进入面板" }).click();
+  await page.getByRole("button", { name: "进入看板" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator(".signed-user")).toContainText("李明");
 }
