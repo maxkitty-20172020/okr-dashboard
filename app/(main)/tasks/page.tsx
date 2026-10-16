@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { TaskCard } from "@/components/task-card";
 import { PeriodSwitcher } from "@/components/period-switcher";
+import { reportStateLabel, expectedCheckInScope } from "@/lib/check-in";
 import { areaLabels } from "@/lib/tasks";
 import { hrefWithOverview } from "@/lib/overview";
 import { loadTaskList, type TaskListParams } from "@/lib/tasks-view";
@@ -13,7 +14,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const user = await requireSession();
   const params = await searchParams;
   const { search, hasPeriodView, archived, tree, periodSearch, query, members,
-    tasks, exceptionLabel } = await loadTaskList(prisma, user, params);
+    tasks, exceptionLabel: rawExceptionLabel } = await loadTaskList(prisma, user, params);
+  const exceptionLabel = search.exception === "unreported" ? reportStateLabel("UNREPORTED", expectedCheckInScope(search.kind)) : rawExceptionLabel;
   return <div className="page">
     {hasPeriodView && <Link className="back-link" href={hrefWithOverview("/overview", periodSearch)}>← 周期汇报</Link>}
     <header className="page-heading">

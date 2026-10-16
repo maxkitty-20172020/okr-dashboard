@@ -71,6 +71,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
     const taskTitle = `冒烟测试任务-${Date.now()}`;
     await page.fill('input[name="title"]', taskTitle);
     await page.fill('textarea[name="completionCriteria"]', "通过冒烟测试并更新进展");
+    await page.getByText("更多设置（选填）", { exact: true }).click();
     await page.fill('input[name="nextAction"]', "执行第二轮回归测试");
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 7);
@@ -86,8 +87,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
 
     // 主负责人更新进展
     const updateSec = page.locator("#update");
-    await updateSec.locator('select[name="updateKind"]').selectOption("PROGRESS");
-    await updateSec.locator('select[name="status"]').selectOption("IN_PROGRESS");
+    await updateSec.locator('select[name="mood"]').selectOption("ok");
     await updateSec.locator('textarea[name="summary"]').fill("自动化测试脚本已创建并执行首次验证。");
     await updateSec.locator('input[name="nextAction"]').fill("持续监控构建流水线");
     await updateSec.locator('button[type="submit"]').click();
@@ -96,7 +96,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
     await expect(page.locator(".history-section")).toContainText("自动化测试脚本已创建并执行首次验证。");
   });
 
-  // 4. 提交 Check-in 后「未汇报」数量减少
+  // 4. 确认进展后待写数量减少（自动写入 Check-in）
   test("提交 Check-in 后「未汇报」数量减少", async ({ page }) => {
     await page.goto("/login");
     await page.fill('input[name="email"]', "okr1");
@@ -111,10 +111,9 @@ test.describe("自动化冒烟测试与权限边界", () => {
     const countBefore = await unreportedCards.count();
 
     if (countBefore > 0) {
-      // 提交第一条未汇报任务的 Check-in
+      // 对第一条待写任务确认暂无变化（走 progress，自动写入 Check-in）
       const targetCard = unreportedCards.first();
-      await targetCard.locator('textarea[name="body"]').fill("本周期冒烟测试完成，数据指标正常。");
-      await targetCard.locator('button[type="submit"]').click();
+      await targetCard.getByRole("button", { name: "暂无变化", exact: true }).click();
 
       // 等待提交完成与页面刷新
       await page.waitForTimeout(1000);
@@ -178,6 +177,7 @@ test.describe("自动化冒烟测试与权限边界", () => {
       const title = `UX-01-验证任务-${Date.now()}`;
       await page.fill('input[name="title"]', title);
       await page.fill('textarea[name="completionCriteria"]', "验证未填期限是否出现在待我汇报");
+      await page.getByText("更多设置（选填）", { exact: true }).click();
       await page.fill('input[name="nextAction"]', "检查周总览");
       await page.fill('input[name="dueAt"]', ""); // 留空完成期限
 

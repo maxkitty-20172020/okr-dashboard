@@ -18,7 +18,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="eyebrow">{boss ? "部门全貌" : "我的工作台"} · {dateLabel(today())}</p>
         <h1>{boss ? "当前重点，责任清楚" : `${user.name}，今天跟进这些事`}</h1>
         <p className="muted">
-          {boss ? "查看重点、分工与风险。周期汇报、未汇报和下钻在「周期汇报」。" : "集中处理到期跟进、主责任务和协作交付。本周 / 本月 / 本季汇报在「周期汇报」。"}
+          {boss ? "查看重点、分工与风险。周期汇报、待补充进展和明细在「周期汇报」。" : "集中处理到期跟进、主责任务和协作交付。本周 / 本月 / 本季汇报在「周期汇报」。"}
         </p>
       </div>
       <div className="heading-actions">

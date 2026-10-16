@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { TaskCard } from "@/components/task-card";
 import { CheckInForm } from "@/components/check-in-form";
+import { NoChangeButton } from "@/components/progress-form";
 import { PeriodSwitcher } from "@/components/period-switcher";
 import { ProgressBar } from "@/components/progress-bar";
-import { checkInStateLabels, expectedCheckInScope, periodKindLabels, scopeTypeLabels } from "@/lib/check-in";
+import { reportStateLabel, expectedCheckInScope, periodKindLabels, scopeTypeLabels } from "@/lib/check-in";
 import { exceptionLabels, hrefWithOverview } from "@/lib/overview";
 import { loadOverview } from "@/lib/overview-service";
 
@@ -15,7 +16,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const user = await requireSession();
   const { tree, search, query, unreported, myUnreported, otherUnreported,
     exceptions, visibleTasks, visibleObjectives, completion, achievement, boss,
-    kindHelp, objectiveViews, keyResultStates, activeTaskCount,
+    tasks, kindHelp, objectiveViews, keyResultStates, activeTaskCount,
   } = await loadOverview(prisma, user, await searchParams);
 
   return <div className="page">
@@ -23,7 +24,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
       <div>
         <p className="eyebrow">{boss ? "部门全貌" : "周期工作台"} · {periodKindLabels[search.kind]}</p>
         <h1>{boss ? "从目标与异常下钻到任务" : "本周期该汇报的事项"}</h1>
-        <p className="muted">{kindHelp}没有对应 Check-in 就是未汇报，系统不会代写空记录。确认暂无变化与未汇报不是一回事。任务完成率与 KR 达成率分开看。</p>
+        <p className="muted">{kindHelp}本周更新进展会自动记录；没有变化？点击下方「暂无变化」即可完成本周汇报。</p>
       </div>
       {boss ? <span className="readonly-label">老板账号 · 只读</span> : <Link className="button" href="/tasks/new">＋ 新建任务</Link>}
     </header>
@@ -31,14 +32,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     <PeriodSwitcher pathname="/overview" search={search} tree={tree} />
 
     <section className="stats-grid" aria-label="周期结果">
-      <div className="stat"><span>任务完成率</span><strong>{Math.round(completion)}%</strong><small>含例行任务，不含已取消 / 已归档</small></div>
-      <div className="stat"><span>KR 达成率</span><strong>{Math.round(achievement)}%</strong><small>按指标进度，不是任务完成率</small></div>
+      <div className="stat"><span>事项推进进度</span><strong>{Math.round(completion)}%</strong><small>含例行任务，不含已取消 / 已归档</small></div>
+      <div className="stat"><span>业务指标达成度</span><strong>{Math.round(achievement)}%</strong><small>看业务指标达到目标的程度</small></div>
       <Link className="stat" href={hrefWithOverview("/tasks", search)}><span>本周期任务</span><strong>{activeTaskCount}</strong><small>未结束 · 可下钻清单</small></Link>
       <Link className="stat" href={hrefWithOverview("/overview", { ...search, exception: "unreported" })}>
-        <span>未汇报</span>
+        <span>{reportStateLabel("UNREPORTED", expectedCheckInScope(search.kind))}</span>
         <strong>{unreported.length}</strong>
         <small>
-          {scopeTypeLabels[expectedCheckInScope(search.kind)]}范围 · {checkInStateLabels.UNREPORTED}
+          {scopeTypeLabels[expectedCheckInScope(search.kind)]}范围 · {reportStateLabel("UNREPORTED", expectedCheckInScope(search.kind))}
         </small>
       </Link>
     </section>
@@ -48,7 +49,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         const active = search.exception === key;
         const href = hrefWithOverview("/tasks", { ...search, exception: active ? undefined : key });
         return <Link key={key} href={href} className={`chip ${active ? "active" : ""} ${key === "risk" || key === "overdue" ? "warn" : ""}`}>
-          {exceptionLabels[key]} <strong>{exceptions[key]}</strong>
+          {key === "unreported" ? reportStateLabel("UNREPORTED", expectedCheckInScope(search.kind)) : exceptionLabels[key]} <strong>{exceptions[key]}</strong>
         </Link>;
       })}
       {search.exception && <Link className="text-link" href={hrefWithOverview("/overview", { ...search, exception: undefined })}>清除异常筛选</Link>}
@@ -66,13 +67,13 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           <h3><Link href={`/okrs/${objective.id}${query}`}>{objective.title}</Link></h3>
           <p className="section-help">{objective.description || "下钻可查看关联任务、交付物与汇报历史。"}</p>
           <ProgressBar value={rate} />
-          <p className="muted small">KR 达成率 {Math.round(rate)}% · 关联任务 {related.length} · {checkInStateLabels[objectiveState]}</p>
+          <p className="muted small">KR 达成率 {Math.round(rate)}% · 关联任务 {related.length} · {reportStateLabel(objectiveState, "OBJECTIVE")}</p>
           <ul className="goal-kr-list">{objective.keyResults.map(keyResult => {
             const state = keyResultStates.get(keyResult.id)!;
             return <li key={keyResult.id}>
               <span>{keyResult.title}</span>
               <span className={`badge ${state === "UNREPORTED" ? "amber" : state === "NO_CHANGE" ? "accent" : "good"}`}>
-                {checkInStateLabels[state]}
+                {reportStateLabel(state, "KEY_RESULT")}
               </span>
             </li>;
           })}</ul>
@@ -92,8 +93,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
     <section className="section-block">
       <div className="section-heading">
-        <h2>{boss ? "未汇报范围" : "待我汇报"}</h2>
-        <span className="muted small">{checkInStateLabels.UNREPORTED} ≠ {checkInStateLabels.NO_CHANGE}</span>
+        <h2>{boss ? "待补充进展与复盘" : "待我汇报"}</h2>
+        <span className="muted small">本周更新进展即视为已汇报</span>
       </div>
       {boss ? (
         unreported.length
@@ -101,7 +102,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             {unreported.map(item => <UnreportedRow key={`${item.scopeType}:${item.scopeId}`} item={item} />)}
           </div>
           : <div className="quiet-state">
-            <span className="badge good">本周期没有未汇报项</span>
+            <span className="badge good">本周期进展已记录</span>
             <p>已提交或确认暂无变化的范围不会出现在这里。</p>
           </div>
       ) : (
@@ -114,20 +115,23 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
                     item =>
                       <article key={`${item.scopeType}:${item.scopeId}`} className="surface detail-section">
                         <UnreportedRow item={item} />
-                        <CheckInForm periodId={tree.selected.id} scopeType={item.scopeType} scopeId={item.scopeId} compact />
+                        {item.scopeType === "TASK" ? <div className="form-actions">
+                          {tasks.find(task => task.id === item.scopeId && task.ownerId === user.id && !task.archivedAt && task.status !== "DONE" && task.status !== "CANCELLED") && <NoChangeButton taskId={item.scopeId} version={tasks.find(task => task.id === item.scopeId)!.version} />}
+                          <Link href={`/tasks/${item.scopeId}${query}#update`}>更新进展</Link>
+                        </div> : <CheckInForm periodId={tree.selected.id} scopeType={item.scopeType} scopeId={item.scopeId} compact />}
                       </article>
                   )
                 }
               </div>
               : <div className="quiet-state">
-                <span className="badge good">没有需要你提交的未汇报项</span>
-                <p>你主责或担任 RACI 负责人 / 问责人的范围，在本周期都已提交或确认暂无变化。</p>
+                <span className="badge good">你需要提交的进展与复盘已记录</span>
+                <p>你负责汇报或督办确认的事项，在本周期都已提交或确认暂无变化。</p>
               </div>
           }
           {
             otherUnreported.length > 0
             && <details className="edit-disclosure">
-              <summary>部门其他未汇报（{otherUnreported.length}）</summary>
+              <summary>部门其他待补充事项（{otherUnreported.length}）</summary>
               <div className="unreported-list">
                 {
                   otherUnreported.map(item => <UnreportedRow key={`${item.scopeType}:${item.scopeId}`} item={item} />)
@@ -161,7 +165,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
 function UnreportedRow({ item }: { item: { href: string; title: string; ownerName: string; scopeType: string; subtitle?: string } }) {
   return <div className="unreported-row">
-    <span className="badge amber">{checkInStateLabels.UNREPORTED}</span>
+    <span className="badge amber">{reportStateLabel("UNREPORTED", item.scopeType as keyof typeof scopeTypeLabels)}</span>
     <div>
       <Link href={item.href}>{item.title}</Link>
       <p className="muted small">

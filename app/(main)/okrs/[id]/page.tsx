@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { CheckInForm } from "@/components/check-in-form";
 import { ProgressBar } from "@/components/progress-bar";
 import { TaskCard } from "@/components/task-card";
-import { checkInStateLabels, periodKindLabels } from "@/lib/check-in";
+import { checkInStateLabels, reportStateLabel, periodKindLabels } from "@/lib/check-in";
 import { hrefWithOverview } from "@/lib/overview";
 import { loadObjectiveDetail } from "@/lib/objective-detail-view";
 import { dateLabel, timeLabel } from "@/lib/tasks";
@@ -37,7 +37,7 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
           : <span className={
             `badge ${objectiveState === "UNREPORTED" ? "amber" : objectiveState === "NO_CHANGE" ? "accent" : "good"}`
           }>
-            {checkInStateLabels[objectiveState]}
+            {reportStateLabel(objectiveState, "OBJECTIVE")}
           </span>
       }
     </header>
@@ -48,7 +48,7 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
       <div className="stat"><span>交付物</span><strong>{deliverables.length}</strong><small>任务下的 Deliverable</small></div>
       <div className="stat">
         <span>本周期汇报</span>
-        <strong>{checkInStateLabels[objectiveState]}</strong>
+        <strong>{reportStateLabel(objectiveState, "OBJECTIVE")}</strong>
         <small>{periodKindLabels[tree.selected.kind]} {tree.selected.label}</small>
       </div>
     </section>
@@ -57,7 +57,7 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
       canWriteObjective
       && <section className="surface detail-section">
         <h2>目标{periodKindLabels[tree.selected.kind]}</h2>
-        <p className="section-help">季评估通常写在目标范围。确认暂无变化会留下记录，不会变成未汇报。</p>
+        <p className="section-help">季评估通常写在目标范围。没有变化也可以确认，系统会保留本季评估记录。</p>
         <CheckInForm periodId={tree.selected.id} scopeType="OBJECTIVE" scopeId={objective.id} />
       </section>
     }
@@ -70,7 +70,7 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
           <div className="section-heading">
             <h3>{keyResult.title}</h3>
             <span className={`badge ${state === "UNREPORTED" ? "amber" : state === "NO_CHANGE" ? "accent" : "good"}`}>
-              {checkInStateLabels[state]}
+              {reportStateLabel(state, "KEY_RESULT")}
             </span>
           </div>
           <p className="muted small">
@@ -118,7 +118,7 @@ export default async function ObjectiveDetailPage({ params, searchParams }: {
 
     <section className="surface detail-section">
       <h2>Check-in 历史</h2>
-      <p className="section-help">按提交时间保留。没有行就是未汇报。</p>
+      <p className="section-help">按提交时间保留。提交复盘或评估后，这里就会显示记录。</p>
       <ol className="history-list">
         {
           checkIns.map(

@@ -7,7 +7,7 @@ export function TaskBadges({ task }: { task: TaskRow }) {
   return <div className="badges">
     {task.archivedAt && <span className="badge">已归档</span>}
     <span className={`badge ${task.status === "BLOCKED" ? "danger" : task.status === "DONE" ? "good" : ""}`}>{statusLabels[task.status]}</span>
-    {!closed(task) && <span className={`badge ${task.health === "AT_RISK" || late ? "danger" : task.lastConfirmedAt ? "good" : ""}`}>{late ? "已逾期" : task.health === "AT_RISK" ? "有风险" : task.lastConfirmedAt ? "按计划" : "情况待确认"}</span>}
+    {!closed(task) && <span className={`badge ${task.health === "AT_RISK" || late ? "danger" : task.lastConfirmedAt ? "good" : ""}`}>{late ? "已逾期" : task.health === "AT_RISK" ? "有风险" : task.lastConfirmedAt ? "按计划" : "刚创建 / 刚接手，待更新进展"}</span>}
     {follow === "missing" && <span className="badge amber">待设置跟进日期</span>}
     {follow === "late" && <span className="badge amber">跟进确认已到期</span>}
     {follow === "today" && <span className="badge amber">今天需跟进</span>}

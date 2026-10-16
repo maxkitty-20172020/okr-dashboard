@@ -39,7 +39,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
   const query = await searchParams;
   const view = await loadTaskDetail(prisma, user, id, query);
   if (!view) notFound();
-  const { tree, returnQuery, backHref, task, members, keyResults, checkIns, raci,
+  const { tree, returnQuery, backHref, task, members, keyResults, checkIns,
     owner, writable, canCheckIn, reportState, active, myContribution, available,
     taskClosed, activeDeliverables, overdueCollaboratorIds, deliveredCount,
     completedMilestoneCount } = view;
@@ -110,11 +110,10 @@ export default async function TaskDetailPage({ params, searchParams }: {
         canCheckIn
         && <section className="surface detail-section" id="checkin">
           <h2>{periodKindLabels[tree.selected.kind]}</h2>
-          <p className="section-help">账号角色与 RACI 分开：老板只读；管理层可为主责或 R/A 范围提交。未汇报不会自动生成空行。</p>
-          <p className="muted small">当前状态：{checkInStateLabels[reportState]}
-            {raci.length ? ` · RACI ${raci.map(row => `${row.role} ${row.user.name}`).join("、")}` : ""}
-          </p>
-          <CheckInForm periodId={tree.selected.id} scopeType="TASK" scopeId={task.id} />
+          {owner ? <p className="section-help">本周更新进展即视为已汇报</p> : <>
+            <p className="section-help">主责汇报人或督办确认人可以在这里提交汇报。</p>
+            <CheckInForm periodId={tree.selected.id} scopeType="TASK" scopeId={task.id} />
+          </>}
         </section>
       }
       {
@@ -129,9 +128,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
             </span>
           </div>
           <p className="section-help">
-            {writable ? "只有主负责人或 RACI 负责人 / 问责人可以提交本任务的周期汇报。" : "老板账号只读，不提交汇报。"} RACI：{
-              raci.length ? raci.map(row => `${row.role} ${row.user.name}`).join("、") : "尚未回填"
-            }
+            {writable ? "只有主责汇报人或督办确认人可以提交本任务的周期汇报。" : "老板账号只读，不提交汇报。"}
           </p>
         </section>
       }
@@ -178,18 +175,18 @@ export default async function TaskDetailPage({ params, searchParams }: {
                     writable && myContribution?.id === c.id && active
                     && <Mutation task={task} operation="contribution" label="更新我的协作">
                       <div className="fields">
-                        <label>交付状态<select name="done" defaultValue={String(c.done)}>
+                        <label>交付状态<span className="field-hint">选择你负责的交付是否完成。例：已交付。</span><select name="done" defaultValue={String(c.done)}>
                           <option value="false">推进中</option>
                           <option value="true">已交付</option>
                         </select>
                         </label>
-                        <label className="span-all">我的进展<textarea
+                        <label className="span-all">我的进展<span className="field-hint">写自己已交付的部分，方便主负责人衔接。</span><textarea
                           name="note"
                           required
                           maxLength={2000}
                           defaultValue={c.note}
                           rows={2}
-                          placeholder="记录自己负责的部分与交付结果" />
+                          placeholder="例：已提交未来 8 周销量预测" />
                         </label>
                       </div>
                       <div className="form-actions"><SubmitButton secondary>保存我的协作</SubmitButton></div>
@@ -216,12 +213,12 @@ export default async function TaskDetailPage({ params, searchParams }: {
             <summary>＋ 安排协作</summary>
             <Mutation task={task} operation="collaborator" label="安排协作">
               <div className="fields">
-                <label>协作成员<select name="userId" required>
+                <label>协作成员<span className="field-hint">选需要一起推进的人。例：王芳。</span><select name="userId" required>
                   {available.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
                 </label>
-                <label>交付期限<input type="date" name="collaboratorDueAt" /></label>
-                <label className="span-all">交付内容<input name="deliverable" required maxLength={500} placeholder="例如：提交未来 8 周的销售预测" />
+                <label>交付期限<span className="field-hint">选对方交付的日期，可留空。例：本周五。</span><input type="date" name="collaboratorDueAt" /></label>
+                <label className="span-all">交付内容<span className="field-hint">写对方需要交给你的具体结果。</span><input name="deliverable" required maxLength={500} placeholder="例：提交未来 8 周的销售预测" />
                 </label>
               </div>
               <div className="form-actions"><SubmitButton>安排协作</SubmitButton></div>
@@ -230,7 +227,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
         }
       </section>
       <section className="surface detail-section">
-        <div className="section-heading"><h2>交付物与工作包</h2><span className="muted small">下钻只读展示，不改 WBS 结构</span></div>
+        <div className="section-heading"><h2>交付物与工作包</h2><span className="muted small">协作子项与交付物清单（只读查看）</span></div>
         {
           activeDeliverables.length
             ? <div className="collaborator-list">
@@ -304,8 +301,8 @@ export default async function TaskDetailPage({ params, searchParams }: {
             <summary>＋ 添加关键节点</summary>
             <Mutation task={task} operation="milestone" label="添加关键节点">
               <div className="fields">
-                <label>节点名称<input name="milestoneTitle" required maxLength={160} /></label>
-                <label>计划日期<input type="date" name="milestoneDueAt" /></label>
+                <label>节点名称<span className="field-hint">用一个结果标记推进阶段。</span><input name="milestoneTitle" required maxLength={160} placeholder="例：确认首批补货数量" /></label>
+                <label>计划日期<span className="field-hint">预计达成节点的日期，可留空。例：本月月底。</span><input type="date" name="milestoneDueAt" /></label>
               </div>
               <div className="form-actions"><SubmitButton>添加节点</SubmitButton></div>
             </Mutation>
@@ -330,7 +327,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
           }
         </details>
       }
-    </div><aside className="surface detail-section history-section"><h2>跟进与汇报</h2><p className="section-help">周期 Check-in 与任务更新分开保留。</p>
+    </div><aside className="surface detail-section history-section"><h2>跟进与汇报</h2><p className="section-help">更新进展会自动记录为本周汇报，旧汇报记录继续保留。</p>
         <ol className="history-list">
           {
             checkIns.map(
