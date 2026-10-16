@@ -38,7 +38,8 @@ before(async () => {
   const initial = readFileSync("prisma/migrations/20260905063634_init/migration.sql", "utf8");
   const migration = readFileSync("prisma/migrations/20260905110000_persistent_tasks/migration.sql", "utf8")
     + readFileSync("prisma/migrations/20260905123000_normalize_history_dates/migration.sql", "utf8")
-    + readFileSync("prisma/migrations/20260909080000_period_wbs_raci_checkin/migration.sql", "utf8");
+    + readFileSync("prisma/migrations/20260909080000_period_wbs_raci_checkin/migration.sql", "utf8")
+    + readFileSync("prisma/migrations/20261016120000_member_admin/migration.sql", "utf8");
   execFileSync("python3", ["-c", `import sqlite3,sys,json
 p=json.loads(sys.stdin.read())
 c=sqlite3.connect(sys.argv[1]); c.executescript(p['initial'])
