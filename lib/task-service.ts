@@ -2,7 +2,7 @@ import { Prisma, PrismaClient, TaskArea, TaskHealth, TaskKind, TaskStatus } from
 import { closed, dateValue, snapshot, taskInclude, today, type Member } from "./tasks";
 import { assignRaci, ensureTaskRaciDefaults } from "./raci";
 
-export class TaskError extends Error {}
+export class TaskError extends Error { }
 export type ActionState = { error?: string; success?: string };
 function value(form: FormData, key: string, max = 2000) {
   const v = String(form.get(key) ?? "").trim();
@@ -62,14 +62,27 @@ export async function createTask(db: PrismaClient, actor: Member, form: FormData
   const user = await writableUser(db, actor);
   return db.$transaction(async tx => {
     const data = await basicData(tx, form);
-    const task = await tx.task.create({ data: { ...data, nextFollowUpAt: nextDate(form), nextAction: required(form, "nextAction", "下一步动作") }, include: { owner: true } });
+    const task = await tx.task.create(
+      {
+        data: { ...data, nextFollowUpAt: nextDate(form), nextAction: required(form, "nextAction", "下一步动作") },
+        include: { owner: true }
+      }
+    );
     await ensureTaskRaciDefaults(tx, task);
     await tx.taskUpdate.create({ data: { taskId: task.id, authorId: user.id, kind: "CREATED", body: "创建任务，明确负责人和完成标准。", snapshot: snapshot(task) } });
     return task.id;
   });
 }
 
-export async function mutateTask(db: PrismaClient, actor: Member, form: FormData, operation: "details" | "progress" | "collaborator" | "contribution" | "removeCollaborator" | "milestone" | "toggleMilestone" | "archive" | "restore") {
+export async function mutateTask(db: PrismaClient, actor: Member, form: FormData, operation: "details"
+  | "progress"
+  | "collaborator"
+  | "contribution"
+  | "removeCollaborator"
+  | "milestone"
+  | "toggleMilestone"
+  | "archive"
+  | "restore") {
   const user = await writableUser(db, actor);
   const id = required(form, "taskId", "任务", 100);
   const rawVersion = required(form, "version", "任务版本", 20);
@@ -82,7 +95,10 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
     if (task.archivedAt && operation !== "restore") throw new TaskError("请先恢复归档任务，再进行修改。");
     const ownerOnly = ["progress", "collaborator", "removeCollaborator", "milestone", "toggleMilestone"];
     if (ownerOnly.includes(operation) && task.ownerId !== user.id) throw new TaskError("这项操作需要由主负责人完成。");
-    if (closed(task) && ["collaborator", "removeCollaborator", "contribution", "milestone", "toggleMilestone"].includes(operation)) throw new TaskError("任务已经结束，请由主负责人重新开启后再更新协作或节点。");
+    if (closed(task)
+      && ["collaborator", "removeCollaborator", "contribution", "milestone", "toggleMilestone"].includes(
+        operation
+      )) throw new TaskError("任务已经结束，请由主负责人重新开启后再更新协作或节点。");
     let data: Prisma.TaskUpdateInput = {};
     let kind = "DETAILS";
     let body = "";
@@ -97,7 +113,12 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
         await tx.raciAssignment.deleteMany({ where: { subjectType: "TASK", subjectId: id, userId: task.ownerId, role: { in: ["R", "A"] } } });
         await ensureTaskRaciDefaults(tx, { id, ownerId });
       }
-      data = { ...fields, ...(ownerId !== task.ownerId ? { lastConfirmedAt: null } : {}), owner: { connect: { id: ownerId } }, keyResult: keyResultId ? { connect: { id: keyResultId } } : { disconnect: true } };
+      data = {
+        ...fields,
+        ...(ownerId !== task.ownerId ? { lastConfirmedAt: null } : {}),
+        owner: { connect: { id: ownerId } },
+        keyResult: keyResultId ? { connect: { id: keyResultId } } : { disconnect: true }
+      };
       body = `调整任务资料或分工。原负责人：${task.owner.name}；原完成期限：${dateValue(task.dueAt) || "未设置"}。`;
     } else if (operation === "progress") {
       const noChange = value(form, "updateKind") === "NO_CHANGE";
@@ -111,7 +132,16 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       const nextFollowUpAt = ending ? null : nextDate(form);
       const summary = noChange ? value(form, "summary") || task.latestProgress || "已确认当前情况，暂无变化。" : required(form, "summary", ending ? "完成结果或取消原因" : "本次进展");
       const nextAction = noChange ? task.nextAction : ending ? "" : required(form, "nextAction", "下一步动作");
-      data = { status, health, riskNote, nextFollowUpAt, nextAction, lastConfirmedAt: new Date(), completedAt: ending ? task.completedAt ?? new Date() : null, ...(!noChange ? { latestProgress: summary } : {}) };
+      data = {
+        status,
+        health,
+        riskNote,
+        nextFollowUpAt,
+        nextAction,
+        lastConfirmedAt: new Date(),
+        completedAt: ending ? task.completedAt ?? new Date() : null,
+        ...(!noChange ? { latestProgress: summary } : {})
+      };
       kind = noChange ? "NO_CHANGE" : "PROGRESS";
       body = summary;
     } else if (operation === "collaborator") {
@@ -122,7 +152,13 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       const dueAt = date(form, "collaboratorDueAt", "协作期限");
       const existing = task.collaborators.find(c => c.userId === userId);
       if (existing) throw new TaskError("这位成员已在协作中，请先移除原分工再重新安排。");
-      await tx.taskCollaborator.upsert({ where: { taskId_userId: { taskId: id, userId } }, create: { taskId: id, userId, deliverable, dueAt }, update: { deliverable, dueAt, done: false, note: "", active: true } });
+      await tx.taskCollaborator.upsert(
+        {
+          where: { taskId_userId: { taskId: id, userId } },
+          create: { taskId: id, userId, deliverable, dueAt },
+          update: { deliverable, dueAt, done: false, note: "", active: true }
+        }
+      );
       await assignRaci(tx, { subjectType: "TASK", subjectId: id, userId, role: "C" });
       kind = "COLLABORATION"; body = `安排 ${collaborator.name} 协作：${deliverable}；期限：${dateValue(dueAt) || "未设置"}。`;
     } else if (operation === "contribution") {

@@ -39,11 +39,7 @@ export function roleLabel(role: string) {
 }
 
 export function statusLabel(status: string) {
-  if (status === "DONE") {
-    return "已完成";
-  }
-  if (status === "IN_PROGRESS") {
-    return "进行中";
-  }
-  return "未开始";
+  // Keep the legacy fallback for callers passing statuses outside these three.
+  return statusLabels[status === "DONE" || status === "IN_PROGRESS" ? status : "TODO"];
 }
+import { statusLabels } from "./tasks";
