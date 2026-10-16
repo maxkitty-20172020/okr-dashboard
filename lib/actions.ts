@@ -129,7 +129,7 @@ export async function submitCheckInAction(_state: ActionState, formData: FormDat
       nextStep: text(formData, "nextStep") || null,
     });
     revalidatePath("/", "layout");
-    return { success: checkIn.status === "NO_CHANGE" ? "已确认暂无变化，本周期不再显示为未汇报。" : "周期汇报已提交。" };
+    return { success: checkIn.status === "NO_CHANGE" ? "已确认暂无变化，本周期进展已记录。" : "周期汇报已提交。" };
   } catch (error) {
     if (error instanceof CheckInError) return { error: error.message };
     console.error("Check-in failed", error instanceof Error ? error.name : "Unknown error");

@@ -41,7 +41,7 @@ test("创建、协作增删及移交在事务中同步 RACI，旧负责人失去
   await mutate(id, "collaborator", { userId: "next", deliverable: "交付" });
   assert.deepEqual(await roles(id), ["A:owner", "C:next", "R:owner"]);
   const { week } = await ensurePeriodTree(db);
-  await assert.rejects(submitCheckIn(db, { id: "next", role: "MANAGER" }, { periodId: week.id, scopeType: "TASK", scopeId: id, status: "NO_CHANGE", body: "" }), /RACI/);
+  await assert.rejects(submitCheckIn(db, { id: "next", role: "MANAGER" }, { periodId: week.id, scopeType: "TASK", scopeId: id, status: "NO_CHANGE", body: "" }), /主责汇报人/);
   await assert.rejects(mutate(id, "details", { ...basic, ownerId: "next" }), /未完成/);
   assert.deepEqual(await roles(id), ["A:owner", "C:next", "R:owner"]);
   await mutate(id, "contribution", { note: "已交付", done: "true" }, { id: "next", name: "新负责人", role: "MANAGER" });

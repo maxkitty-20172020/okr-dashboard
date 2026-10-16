@@ -7,7 +7,7 @@ import { CHECKIN_UNREPORTED, expectedCheckInScope, type CheckInReportState } fro
 export const exceptionLabels = {
   risk: "风险",
   overdue: "逾期",
-  unreported: "未汇报",
+  unreported: "本周还没写进展",
   pending: "待确认",
 } as const;
 

@@ -7,10 +7,15 @@ export class CheckInError extends Error {}
 export type CheckInClient = PrismaClient | Prisma.TransactionClient;
 
 export const checkInStateLabels: Record<CheckInReportState, string> = {
-  UNREPORTED: "未汇报",
+  UNREPORTED: "本周还没写进展",
   SUBMITTED: "已提交",
   NO_CHANGE: "确认暂无变化",
 };
+
+export function reportStateLabel(state: CheckInReportState, scope: CheckInScopeType = "TASK") {
+  if (state !== "UNREPORTED") return checkInStateLabels[state];
+  return scope === "KEY_RESULT" ? "本月还没复盘" : scope === "OBJECTIVE" ? "本季还没评估" : "本周还没写进展";
+}
 
 export const periodKindLabels: Record<PeriodKind, string> = {
   WEEK: "周更新",
@@ -179,7 +184,7 @@ export async function submitCheckIn(db: PrismaClient, actor: Pick<Member, "id" |
   const scopeId = input.scopeId?.trim() || null;
   if (scopeType !== CheckInScopeType.DEPT && !scopeId) throw new CheckInError("请选择要汇报的对象。");
   if (!(await canAuthorCheckIn(db, current, scopeType, scopeId))) {
-    throw new CheckInError("只能为自己主责或担任 RACI 负责人 / 问责人的范围提交汇报。账号角色与 RACI 分工不是一回事。");
+    throw new CheckInError("只能由主责汇报人或督办确认人提交该范围的汇报。");
   }
 
   const period = await db.period.findUnique({ where: { id: input.periodId } });

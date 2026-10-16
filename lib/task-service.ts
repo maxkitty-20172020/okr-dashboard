@@ -1,5 +1,6 @@
-import { Prisma, PrismaClient, TaskArea, TaskHealth, TaskKind, TaskStatus } from "@prisma/client";
+import { Prisma, PrismaClient, TaskArea, TaskHealth, TaskStatus } from "@prisma/client";
 import { closed, dateValue, snapshot, taskInclude, today, type Member } from "./tasks";
+import { ensurePeriodTree } from "./period";
 import { assignRaci, ensureTaskRaciDefaults } from "./raci";
 
 export class TaskError extends Error { }
@@ -25,11 +26,21 @@ function date(form: FormData, key: string, label: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || !Number.isFinite(parsed.getTime()) || dateValue(parsed) !== v) throw new TaskError(`${label}不是有效日期。`);
   return parsed;
 }
-function nextDate(form: FormData) {
-  const d = date(form, "nextFollowUpAt", "下次跟进日期");
-  if (!d) throw new TaskError("请设置下次跟进日期。");
-  if (d < today()) throw new TaskError("下次跟进日期不能早于今天。");
-  return d;
+/** Resolve shortcuts from the Shanghai business day; explicit legacy dates still work. */
+export function followUpDate(form: FormData, now = new Date()) {
+  const preset = value(form, "followPreset") || (value(form, "nextFollowUpAt") ? "custom" : "in3days");
+  const day = today(now);
+  if (preset === "custom") {
+    const d = date(form, "nextFollowUpAt", "下次跟进日期");
+    if (!d) throw new TaskError("请设置下次跟进日期。");
+    if (d < day) throw new TaskError("下次跟进日期不能早于今天。");
+    return d;
+  }
+  const days = preset === "tomorrow" ? 1 : preset === "in3days" ? 3
+    : preset === "nextMonday" ? (8 - day.getUTCDay()) % 7 || 7 : null;
+  if (days === null) throw new TaskError("跟进日选项无效，请重新选择。");
+  day.setUTCDate(day.getUTCDate() + days);
+  return day;
 }
 export async function writableUser(db: PrismaClient, actor: Member) {
   const current = await db.user.findUnique({ where: { id: actor.id }, select: { id: true, name: true, role: true, disabledAt: true } });
@@ -42,30 +53,32 @@ async function member(tx: Prisma.TransactionClient, id: string) {
   if (!u || u.disabledAt || u.role === "BOSS") throw new TaskError("请选择一位未停用的填报成员，老板不参与任务填报。");
   return u;
 }
-async function basicData(tx: Prisma.TransactionClient, form: FormData) {
-  const ownerId = required(form, "ownerId", "主负责人", 100);
+async function basicData(tx: Prisma.TransactionClient, form: FormData, defaultOwner = "") {
+  const ownerId = value(form, "ownerId", 100) || defaultOwner;
+  if (!ownerId) throw new TaskError("请填写主负责人。");
   await member(tx, ownerId);
   const keyResultId = value(form, "keyResultId", 100) || null;
   if (keyResultId && !await tx.keyResult.findUnique({ where: { id: keyResultId } })) throw new TaskError("关联目标已不存在，请重新选择。");
   const priority = Number(value(form, "priority") || "1");
   if (![0, 1, 2].includes(priority)) throw new TaskError("优先级无效。");
+  const dueAt = date(form, "dueAt", "完成期限");
   return {
     title: required(form, "title", "任务名称", 160),
     completionCriteria: required(form, "completionCriteria", "完成标准"),
-    area: option(value(form, "area"), TaskArea, "责任领域"),
-    kind: option(value(form, "kind"), TaskKind, "任务类型"),
+    area: option(value(form, "area") || "OTHER", TaskArea, "责任领域"),
+    kind: dueAt ? "SHORT_TERM" as const : "LONG_TERM" as const,
     scope: value(form, "scope", 160), ownerId, keyResultId, priority,
-    dueAt: date(form, "dueAt", "完成期限"),
+    dueAt,
   };
 }
 
 export async function createTask(db: PrismaClient, actor: Member, form: FormData) {
   const user = await writableUser(db, actor);
   return db.$transaction(async tx => {
-    const data = await basicData(tx, form);
+    const data = await basicData(tx, form, user.id);
     const task = await tx.task.create(
       {
-        data: { ...data, nextFollowUpAt: nextDate(form), nextAction: required(form, "nextAction", "下一步动作") },
+        data: { ...data, nextFollowUpAt: followUpDate(form), nextAction: value(form, "nextAction") || "明确推进计划" },
         include: { owner: true }
       }
     );
@@ -103,6 +116,7 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
     let data: Prisma.TaskUpdateInput = {};
     let kind = "DETAILS";
     let body = "";
+    let progressReport: { noChange: boolean; riskNote: string; nextAction: string } | undefined;
     if (operation === "details") {
       const basic = await basicData(tx, form);
       const { ownerId, keyResultId, ...fields } = basic;
@@ -122,16 +136,29 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       };
       body = `调整任务资料或分工。原负责人：${task.owner.name}；原完成期限：${dateValue(task.dueAt) || "未设置"}。`;
     } else if (operation === "progress") {
-      const noChange = value(form, "updateKind") === "NO_CHANGE";
+      const mood = value(form, "mood");
+      const moods = {
+        ok: { status: TaskStatus.IN_PROGRESS, health: TaskHealth.ON_TRACK },
+        risk: { status: TaskStatus.IN_PROGRESS, health: TaskHealth.AT_RISK },
+        wait: { status: TaskStatus.WAITING, health: TaskHealth.ON_TRACK },
+        stuck: { status: TaskStatus.BLOCKED, health: TaskHealth.AT_RISK },
+        done: { status: TaskStatus.DONE, health: TaskHealth.ON_TRACK },
+        cancel: { status: TaskStatus.CANCELLED, health: TaskHealth.ON_TRACK },
+      };
+      if (form.has("mood") && mood !== "same" && !Object.hasOwn(moods, mood)) throw new TaskError("现在怎么样选项无效，请重新选择。");
+      const mapped = moods[mood as keyof typeof moods];
+      const noChange = form.has("mood") ? mood === "same" : value(form, "updateKind") === "NO_CHANGE";
       if (noChange && closed(task)) throw new TaskError("已结束任务无需确认暂无变化。");
-      const status = noChange ? task.status : option(value(form, "status"), TaskStatus, "任务状态");
+      const status = noChange ? task.status : mapped?.status ?? option(value(form, "status"), TaskStatus, "任务状态");
       const ending = closed({ status });
-      const selectedHealth = noChange ? task.health : option(value(form, "health"), TaskHealth, "风险情况");
+      const selectedHealth = noChange ? task.health : mapped?.health ?? option(value(form, "health"), TaskHealth, "风险情况");
       const health = status === "BLOCKED" ? TaskHealth.AT_RISK : selectedHealth;
       const riskNote = noChange ? task.riskNote : value(form, "riskNote");
       if (!ending && (health === "AT_RISK" || status === "BLOCKED") && !riskNote) throw new TaskError("请说明风险或阻塞原因，以及需要的支持。");
-      const nextFollowUpAt = ending ? null : nextDate(form);
-      const summary = noChange ? value(form, "summary") || task.latestProgress || "已确认当前情况，暂无变化。" : required(form, "summary", ending ? "完成结果或取消原因" : "本次进展");
+      const nextFollowUpAt = ending ? null : followUpDate(form);
+      let summary = noChange ? value(form, "summary") || task.latestProgress || "已确认当前情况，暂无变化。" : required(form, "summary", mood === "done" ? "最后结果" : mood === "cancel" ? "取消原因" : ending ? "完成结果或取消原因" : "本次进展");
+      const waitingOn = mood === "wait" ? value(form, "waitingOn", 500) : "";
+      if (waitingOn) summary += `（在等：${waitingOn}）`;
       const nextAction = noChange ? task.nextAction : ending ? "" : required(form, "nextAction", "下一步动作");
       data = {
         status,
@@ -145,6 +172,7 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
       };
       kind = noChange ? "NO_CHANGE" : "PROGRESS";
       body = summary;
+      progressReport = { noChange, riskNote, nextAction };
     } else if (operation === "collaborator") {
       const userId = required(form, "userId", "协作者", 100);
       const collaborator = await member(tx, userId);
@@ -197,6 +225,14 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
     if (lock.count !== 1) throw new TaskError("任务已被更新，请刷新页面后重试。");
     const updated = await tx.task.update({ where: { id }, data, include: { owner: true } });
     await tx.taskUpdate.create({ data: { taskId: id, authorId: user.id, kind, body, snapshot: snapshot(updated) } });
+    if (progressReport) {
+      const { week } = await ensurePeriodTree(tx);
+      await tx.checkIn.create({ data: {
+        periodId: week.id, scopeType: "TASK", scopeId: id, authorId: user.id,
+        status: progressReport.noChange ? "NO_CHANGE" : "SUBMITTED", body,
+        blocker: progressReport.riskNote || null, nextStep: progressReport.nextAction || null,
+      } });
+    }
     return id;
   });
 }

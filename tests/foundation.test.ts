@@ -117,7 +117,7 @@ test("Check-in 无行即为未汇报", async () => {
   const { week } = await ensurePeriodTree(db, new Date("2026-09-09T04:00:00.000Z"));
   const task = await db.task.create({ data: { title: "待汇报事项", ownerId: "owner" } });
   assert.equal(checkInReportState(null), CHECKIN_UNREPORTED);
-  assert.equal(checkInStateLabels.UNREPORTED, "未汇报");
+  assert.equal(checkInStateLabels.UNREPORTED, "本周还没写进展");
   assert.equal(await checkInStateForScope(db, week.id, "TASK", task.id), "UNREPORTED");
   await db.checkIn.create({
     data: { periodId: week.id, scopeType: "TASK", scopeId: task.id, authorId: "owner", status: "NO_CHANGE", body: "确认暂无变化" },

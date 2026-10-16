@@ -105,7 +105,7 @@ test("只有主责或 RACI R/A 可写，协作者 C 不能代交", async () => {
   assert.equal(await canAuthorCheckIn(db, actors.boss, "TASK", task.id), false);
   await assert.rejects(submitCheckIn(db, actors.collaborator, {
     periodId: week.id, scopeType: "TASK", scopeId: task.id, status: "SUBMITTED", body: "协作者越权",
-  }), /RACI/);
+  }), /主责汇报人/);
 });
 
 test("未汇报检测不写入空行，并可按周期列出缺口", async () => {

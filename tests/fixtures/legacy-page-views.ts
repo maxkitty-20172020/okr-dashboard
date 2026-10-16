@@ -141,7 +141,7 @@ export async function legacyTaskList(prisma: PrismaClient, user: Member, params:
     ? "风险"
     : search.exception === "overdue"
       ? "逾期"
-      : search.exception === "unreported" ? "未汇报" : search.exception === "pending" ? "待确认" : "";
+      : search.exception === "unreported" ? "本周还没写进展" : search.exception === "pending" ? "待确认" : "";
   return { search, hasPeriodView, archived, tree, periodSearch, query, members, tasks, exceptionLabel };
 }
 
