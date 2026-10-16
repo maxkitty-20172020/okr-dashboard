@@ -1,3 +1,4 @@
+import { canViewTask, TASK_NOT_VISIBLE } from "./task-visibility";
 import { Prisma, PrismaClient, TaskArea, TaskHealth, TaskStatus } from "@prisma/client";
 import { closed, dateValue, snapshot, taskInclude, today, type Member } from "./tasks";
 import { ensurePeriodTree } from "./period";
@@ -96,18 +97,22 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
   | "milestone"
   | "toggleMilestone"
   | "archive"
-  | "restore") {
-  const user = await writableUser(db, actor);
+  | "restore"
+  | "transfer") {
+  const user = operation === "transfer"
+    ? await db.user.findUnique({ where: { id: actor.id }, select: { id: true, name: true, role: true, disabledAt: true } })
+    : await writableUser(db, actor);
+  if (!user || user.disabledAt || (operation === "transfer" && user.role !== "BOSS")) throw new TaskError("只有老板可以移交负责人。");
   const id = required(form, "taskId", "任务", 100);
   const rawVersion = required(form, "version", "任务版本", 20);
   const version = Number(rawVersion);
   if (!Number.isSafeInteger(version) || version < 0) throw new TaskError("任务版本无效，请刷新页面。");
   return db.$transaction(async tx => {
-    const task = await tx.task.findUnique({ where: { id }, include: taskInclude });
-    if (!task) throw new TaskError("任务已不存在。");
+    const task = await tx.task.findUnique({ where: { id }, include: { ...taskInclude, updates: { where: { kind: "CREATED" }, select: { kind: true, authorId: true } } } });
+    if (!task || !canViewTask(user, task)) throw new TaskError(TASK_NOT_VISIBLE);
     if (task.version !== version) throw new TaskError("这条任务刚被其他人更新，请刷新页面后再提交；本次修改未写入。");
-    if (task.archivedAt && operation !== "restore") throw new TaskError("请先恢复归档任务，再进行修改。");
-    const ownerOnly = ["progress", "collaborator", "removeCollaborator", "milestone", "toggleMilestone"];
+    if (task.archivedAt && operation !== "restore" && operation !== "transfer") throw new TaskError("请先恢复归档任务，再进行修改。");
+    const ownerOnly = ["details", "archive", "restore", "progress", "collaborator", "removeCollaborator", "milestone", "toggleMilestone"];
     if (ownerOnly.includes(operation) && task.ownerId !== user.id) throw new TaskError("这项操作需要由主负责人完成。");
     if (closed(task)
       && ["collaborator", "removeCollaborator", "contribution", "milestone", "toggleMilestone"].includes(
@@ -117,9 +122,8 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
     let kind = "DETAILS";
     let body = "";
     let progressReport: { noChange: boolean; riskNote: string; nextAction: string } | undefined;
-    if (operation === "details") {
-      const basic = await basicData(tx, form);
-      const { ownerId, keyResultId, ...fields } = basic;
+    // Both transfer entry points share collaboration and RACI updates in this transaction.
+    const transferOwner = async (ownerId: string) => {
       const activeCollaborator = task.collaborators.find(c => c.userId === ownerId);
       if (ownerId !== task.ownerId && activeCollaborator && !activeCollaborator.done) throw new TaskError("新负责人还有未完成的协作交付，请先完成该协作或由原负责人移除协作分工。");
       if (activeCollaborator) await tx.taskCollaborator.update({ where: { id: activeCollaborator.id }, data: { active: false } });
@@ -128,6 +132,18 @@ export async function mutateTask(db: PrismaClient, actor: Member, form: FormData
         await tx.raciAssignment.deleteMany({ where: { subjectType: "TASK", subjectId: id, userId: task.ownerId, role: { in: ["R", "A"] } } });
         await ensureTaskRaciDefaults(tx, { id, ownerId });
       }
+    }
+    if (operation === "transfer") {
+      const next = await member(tx, required(form, "ownerId", "主负责人", 100));
+      if (next.id === task.ownerId) throw new TaskError("请选择另一位填报成员。");
+      await transferOwner(next.id);
+      data = { owner: { connect: { id: next.id } }, lastConfirmedAt: null };
+      kind = "TRANSFER";
+      body = `${user.name} 将负责人由 ${task.owner.name} 移交给 ${next.name}`;
+    } else if (operation === "details") {
+      const basic = await basicData(tx, form);
+      const { ownerId, keyResultId, ...fields } = basic;
+      await transferOwner(ownerId);
       data = {
         ...fields,
         ...(ownerId !== task.ownerId ? { lastConfirmedAt: null } : {}),

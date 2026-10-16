@@ -1,3 +1,4 @@
+import { visibleTaskWhere } from "./task-visibility";
 import { loadPeriodView } from "./period-view";
 import { today as todayForDashboard } from "./tasks";
 import type { CheckInClient } from "./check-in";
@@ -8,11 +9,11 @@ import {
 
 export async function loadDashboard(db: CheckInClient, user: Member) {
   const [allTasks, members, updates] = await Promise.all([
-    db.task.findMany({ include: taskInclude }),
+    db.task.findMany({ where: visibleTaskWhere(user), include: taskInclude }),
     db.user.findMany({ select: publicUser, orderBy: { createdAt: "asc" } }),
     db.taskUpdate.findMany(
       {
-        where: { task: { archivedAt: null } },
+        where: { task: { archivedAt: null, AND: [visibleTaskWhere(user)] } },
         include: { author: { select: { name: true } }, task: { select: { id: true, title: true } } },
         orderBy: { createdAt: "desc" },
         take: 8
@@ -94,7 +95,7 @@ export function dashboardDate(now = new Date()) {
 }
 export async function loadRedesignDashboard(db: CheckInClient, user: Member) {
   const [legacy, period, people] = await Promise.all([
-    loadDashboard(db, user), loadPeriodView(db, { kind: "WEEK" }),
+    loadDashboard(db, user), loadPeriodView(db, { kind: "WEEK" }, user),
     db.user.findMany({ where: { disabledAt: null, role: { not: "BOSS" } }, select: publicUser, orderBy: { createdAt: "asc" } }),
   ]);
   return { ...legacy, lanes: dashboardLanes(legacy.active, user), headline: dashboardHeadline(legacy.active, user),

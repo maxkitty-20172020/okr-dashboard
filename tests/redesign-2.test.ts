@@ -21,17 +21,18 @@ function view(missing = ["a", "b", "c"], period = weekBounds(now).label): Weekly
     search: { kind: "WEEK", period }, myUnreported: [],
   } as unknown as WeeklyInput;
 }
-test("§4.5 全员周范围保持原口径，按实际主负责人分组，老板无任务时不建空组", () => {
+test("§4.5 可见周范围保持原口径，成员仅看本人分组", () => {
   const result = weeklyOverview(view(), me, now);
   assert.equal(result.total, 3); assert.equal(result.written, 0);
-  assert.deepEqual(result.groups.map(group => [group.ownerName, group.items.map(item => item.id)]), [["李明", ["a", "c"]], ["王芳", ["b"]]]);
+  assert.deepEqual(result.groups.map(group => [group.ownerName, group.items.map(item => item.id)]), [["李明", ["a", "c"]]]);
   assert.deepEqual(result.pending.map(item => [item.id, item.canConfirm, item.version]), [["a", true, 4], ["b", false, 4], ["c", false, 4]]);
   assert.ok(result.pending[0].href.includes("kind=WEEK"));
 });
 test("§4.5 写过的事项移出分组、计数减少；全部写过时不生成空组", () => {
   const result = weeklyOverview(view(["b"]), me, now);
   assert.equal(result.written, 2); assert.equal(result.pending.length, 1);
-  assert.deepEqual(result.groups.map(group => group.ownerId), ["other"]);
+  assert.deepEqual(result.groups.map(group => group.ownerId), []);
+  assert.deepEqual(weeklyOverview(view(["b"]), boss, now).groups.map(group => group.ownerId), ["other"]);
   const complete = weeklyOverview(view([]), me, now);
   assert.equal(complete.written, 3); assert.deepEqual(complete.groups, []);
 });

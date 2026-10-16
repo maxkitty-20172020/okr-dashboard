@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { dashboardDate, dashboardHeadline, dashboardLanes, dashboardWeekProgress } from "../lib/dashboard-view";
 import type { Member, TaskRow } from "../lib/tasks";
 import type { loadPeriodView } from "../lib/period-view";
+import { SYSTEM_VIEWER } from "../lib/task-visibility";
 const now = new Date("2026-10-16T02:00:00Z");
 const day = new Date("2026-10-16T00:00:00Z");
 const later = new Date("2026-10-20T00:00:00Z");
@@ -94,7 +95,7 @@ test("§4.1 真实周范围与总览一致：跨周、当周完成、取消、�
       await db.task.create({ data: { ownerId: actor.id, title: row.id, createdAt: old, ...row } });
     }
     await db.checkIn.create({ data: { periodId: week.id, scopeType: "TASK", scopeId: "carry", authorId: actor.id, status: "NO_CHANGE", body: "暂无变化" } });
-    const overview = await loadPeriodView(db, { kind: "WEEK" });
+    const overview = await loadPeriodView(db, { kind: "WEEK" }, SYSTEM_VIEWER);
     const memberView = await loadRedesignDashboard(db, actor);
     const bossView = await loadRedesignDashboard(db, reader);
     assert.equal(bossView.week.total, overview.expected.length);

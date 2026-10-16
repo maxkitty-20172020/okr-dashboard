@@ -1,3 +1,4 @@
+import { visibleTaskWhere } from "./task-visibility";
 import { PeriodKind, Prisma, PrismaClient, type Period } from "@prisma/client";
 import { addWeeks, dateFromQuarterLabel, startOfBusinessWeek } from "./week";
 import { ensurePeriodTree, type PeriodClient } from "./period";
@@ -117,7 +118,7 @@ export async function descendantPeriodIds(db: PeriodClient, periodId: string) {
   return ids;
 }
 
-export async function tasksInPeriod(db: PrismaClient | Prisma.TransactionClient, period: Period, quarterId?: string | null) {
+export async function tasksInPeriod(db: PrismaClient | Prisma.TransactionClient, period: Period, quarterId: string | null | undefined, user: import("./tasks").Member) {
   const periodIds = await descendantPeriodIds(db, period.id);
   const or: Prisma.TaskWhereInput[] = [
     { createdAt: { lt: period.endAt }, OR: [
@@ -134,7 +135,7 @@ export async function tasksInPeriod(db: PrismaClient | Prisma.TransactionClient,
     where: {
       archivedAt: null, OR: or,
       // Explicit null branch avoids SQL NOT(... completedAt < ...) dropping null dates.
-      AND: [{ OR: [{ status: { not: "CANCELLED" } }, { completedAt: null }, { completedAt: { gte: period.startAt } }] }],
+      AND: [visibleTaskWhere(user), { OR: [{ status: { not: "CANCELLED" } }, { completedAt: null }, { completedAt: { gte: period.startAt } }] }],
     },
     include: overviewTaskInclude,
     orderBy: { createdAt: "asc" },

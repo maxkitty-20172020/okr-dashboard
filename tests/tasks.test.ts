@@ -79,7 +79,7 @@ test("同一事项多人协作，个人交付不完成整体任务", async () =>
   assert.equal(await db.task.count({ where: { id } }), 1);
   assert.equal(t.collaborators[0].note, "预测清单已交付");
   await assert.rejects(mutate(id, "progress", actors.collaborator), /主负责人/);
-  await assert.rejects(mutate(id, "contribution", actors.other, { done: "true", note: "伪造提交" }), /只有此任务的协作者/);
+  await assert.rejects(mutate(id, "contribution", actors.other, { done: "true", note: "伪造提交" }), /这项事项不存在或你无权查看/);
 });
 
 test("暂无变化只确认跟进，不虚增任务进度、不覆盖事实记录", async () => {

@@ -18,6 +18,7 @@ import {
 } from "../lib/check-in";
 import { dateForPeriodLabel, hrefWithOverview, parseOverviewSearch, tasksInPeriod } from "../lib/overview";
 import { isoWeekLabel, weekBounds } from "../lib/week";
+import { SYSTEM_VIEWER } from "../lib/task-visibility";
 
 const folder = mkdtempSync(join(tmpdir(), "okr-checkin-tests-"));
 const file = join(folder, "test.db");
@@ -139,7 +140,7 @@ test("目标负责人可写 KR / Objective 汇报，任务完成率查询不串�
   await submitCheckIn(db, actors.owner, {
     periodId: current.week.id, scopeType: "KEY_RESULT", scopeId: keyResult.id, status: "SUBMITTED", body: "广告成本按计划下降。", metricNote: "当前 30%",
   });
-  const weekTasks = await tasksInPeriod(db, current.week, current.quarter.id);
+  const weekTasks = await tasksInPeriod(db, current.week, current.quarter.id, SYSTEM_VIEWER);
   assert.equal(weekTasks.some(task => task.id === thisWeek.id), true);
   assert.equal(weekTasks.some(task => task.title === "下周事项"), false);
 });

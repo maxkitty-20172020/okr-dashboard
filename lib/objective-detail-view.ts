@@ -1,3 +1,4 @@
+import { visibleTaskWhere } from "./task-visibility";
 import type { CheckInClient } from "./check-in";
 import { checkInReportState, scopeKey } from "./check-in";
 import { loadCheckInAuthorizer } from "./check-in-permissions";
@@ -22,7 +23,7 @@ export async function loadObjectiveDetail(db: CheckInClient, user: Member, id: s
   });
   if (!objective) return null;
   const [tasks, checkIns] = await Promise.all([
-    db.task.findMany({ where: { archivedAt: null, keyResult: { objectiveId: objective.id } }, include: overviewTaskInclude }),
+    db.task.findMany({ where: { AND: [visibleTaskWhere(user)], archivedAt: null, keyResult: { objectiveId: objective.id } }, include: overviewTaskInclude }),
     db.checkIn.findMany({
       where: {
         OR: [

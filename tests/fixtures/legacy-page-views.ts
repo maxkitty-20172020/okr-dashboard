@@ -14,6 +14,7 @@ import {
 import { canConfirm, taskInclude, closed, followUpState, needsAttention, publicUser, sortTasks, today, type Member } from "../../lib/tasks";
 import { listSubjectRaci } from "../../lib/raci";
 import type { TaskListParams } from "../../lib/tasks-view";
+import { SYSTEM_VIEWER } from "../../lib/task-visibility";
 
 export async function legacyOverview(prisma: PrismaClient, user: Member, params: Record<string, string | string[] | undefined>) {
   const raw = parseOverviewSearch(params);
@@ -21,7 +22,7 @@ export async function legacyOverview(prisma: PrismaClient, user: Member, params:
   const search = { ...raw, kind: tree.selected.kind, period: tree.selected.label };
   const query = overviewQuery(search);
   const [tasks, objectives, checkIns] = await Promise.all([
-    tasksInPeriod(prisma, tree.selected, tree.quarter.id),
+    tasksInPeriod(prisma, tree.selected, tree.quarter.id, SYSTEM_VIEWER),
     objectivesForQuarter(prisma, tree.quarter.id),
     latestCheckInMap(prisma, tree.selected.id),
   ]);
@@ -97,7 +98,7 @@ export async function legacyTaskList(prisma: PrismaClient, user: Member, params:
         }
       ),
     prisma.user.findMany({ select: publicUser, orderBy: { createdAt: "asc" } }),
-    tree ? tasksInPeriod(prisma, tree.selected, tree.quarter.id) : Promise.resolve([] as OverviewTask[]),
+    tree ? tasksInPeriod(prisma, tree.selected, tree.quarter.id, SYSTEM_VIEWER) : Promise.resolve([] as OverviewTask[]),
     tree ? objectivesForQuarter(prisma, tree.quarter.id) : Promise.resolve([]),
     tree ? latestCheckInMap(prisma, tree.selected.id) : Promise.resolve(new Map()),
   ]);

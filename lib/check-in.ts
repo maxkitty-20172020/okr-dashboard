@@ -1,3 +1,4 @@
+import { visibleTaskWhere, TASK_NOT_VISIBLE } from "./task-visibility";
 import { CheckInScopeType, CheckInStatus, PeriodKind, Prisma, PrismaClient, RaciRole, RaciSubjectType } from "@prisma/client";
 import { snapshot, type Member } from "./tasks";
 
@@ -119,7 +120,7 @@ export async function canAuthorCheckIn(
   if (scopeType === CheckInScopeType.DEPT || !scopeId) return false;
 
   if (scopeType === CheckInScopeType.TASK) {
-    const task = await db.task.findUnique({ where: { id: scopeId }, select: { ownerId: true } });
+    const task = await db.task.findFirst({ where: { id: scopeId, AND: [visibleTaskWhere(actor)] }, select: { ownerId: true } });
     if (!task) return false;
     return task.ownerId === actor.id || hasRaciRA(db, actor.id, RaciSubjectType.TASK, scopeId);
   }
@@ -176,35 +177,36 @@ export async function submitCheckIn(db: PrismaClient, actor: Pick<Member, "id" |
   blocker?: string | null;
   nextStep?: string | null;
 }) {
-  const current = await db.user.findUnique({ where: { id: actor.id }, select: { id: true, name: true, role: true } });
-  if (!current || current.role === "BOSS") throw new CheckInError("老板账号仅可查看，不能修改数据。");
+  const current = await db.user.findUnique({ where: { id: actor.id }, select: { id: true, name: true, role: true, disabledAt: true } });
+  if (!current || current.disabledAt || current.role === "BOSS") throw new CheckInError("老板账号仅可查看，不能修改数据。");
 
   const scopeType = parseCheckInScopeType(input.scopeType);
   const status = parseCheckInStatus(input.status);
   const scopeId = input.scopeId?.trim() || null;
   if (scopeType !== CheckInScopeType.DEPT && !scopeId) throw new CheckInError("请选择要汇报的对象。");
-  if (!(await canAuthorCheckIn(db, current, scopeType, scopeId))) {
-    throw new CheckInError("只能由主责汇报人或督办确认人提交该范围的汇报。");
-  }
-
-  const period = await db.period.findUnique({ where: { id: input.periodId } });
-  if (!period) throw new CheckInError("周期不存在，请刷新页面。");
-
-  const clip = (value: string | null | undefined, label: string, max = 2000) => {
-    const text = (value ?? "").trim();
-    if (text.length > max) throw new CheckInError(`${label}过长，请控制在 ${max} 字以内。`);
-    return text;
-  };
-  const body = status === CheckInStatus.NO_CHANGE
-    ? clip(input.body, "说明") || "确认暂无变化"
-    : clip(input.body, "进展事实");
-  if (status === CheckInStatus.SUBMITTED && !body) throw new CheckInError("请填写进展事实。");
-
-  const metricNote = clip(input.metricNote, "指标说明") || null;
-  const blocker = clip(input.blocker, "阻塞") || null;
-  const nextStep = clip(input.nextStep, "下一步") || null;
 
   return db.$transaction(async tx => {
+    if (scopeType === "TASK" && !await tx.task.findFirst({ where: { id: scopeId!, AND: [visibleTaskWhere(current)] }, select: { id: true } })) {
+      throw new CheckInError(TASK_NOT_VISIBLE);
+    }
+    if (!await canAuthorCheckIn(tx, current, scopeType, scopeId)) throw new CheckInError("只能由主责汇报人或督办确认人提交该范围的汇报。");
+    const period = await tx.period.findUnique({ where: { id: input.periodId } });
+    if (!period) throw new CheckInError("周期不存在，请刷新页面。");
+
+    const clip = (value: string | null | undefined, label: string, max = 2000) => {
+      const text = (value ?? "").trim();
+      if (text.length > max) throw new CheckInError(`${label}过长，请控制在 ${max} 字以内。`);
+      return text;
+    };
+    const body = status === CheckInStatus.NO_CHANGE
+      ? clip(input.body, "说明") || "确认暂无变化"
+      : clip(input.body, "进展事实");
+    if (status === CheckInStatus.SUBMITTED && !body) throw new CheckInError("请填写进展事实。");
+
+    const metricNote = clip(input.metricNote, "指标说明") || null;
+    const blocker = clip(input.blocker, "阻塞") || null;
+    const nextStep = clip(input.nextStep, "下一步") || null;
+
     const checkIn = await tx.checkIn.create({
       data: {
         periodId: period.id,

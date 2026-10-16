@@ -7,7 +7,7 @@ import { loadPeriodView, matchesTaskPerson, type SearchParams } from "./period-v
 import { closed, type Member } from "./tasks";
 
 export async function loadOverview(db: CheckInClient, user: Member, params: SearchParams) {
-  const period = await loadPeriodView(db, params);
+  const period = await loadPeriodView(db, params, user);
   const { tree, search, query, tasks, objectives, checkIns, expected, missingIds,
     unreported, relatedUnreportedTasks, reportStateForTask } = period;
   const keyResults = objectives.flatMap(objective => objective.keyResults);

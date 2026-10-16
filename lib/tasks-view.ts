@@ -1,3 +1,4 @@
+import { visibleTaskWhere } from "./task-visibility";
 import type { CheckInClient } from "./check-in";
 import { CHECKIN_UNREPORTED, checkInReportState, expectedCheckInScope, scopeKey } from "./check-in";
 import { exceptionLabels, overviewQuery, overviewTaskInclude, parseOverviewSearch, taskExceptionMatch } from "./overview";
@@ -14,9 +15,9 @@ export async function loadTaskList(db: CheckInClient, user: Member, params: Task
   const hasPeriodView = Boolean(params.kind || params.period || params.exception);
   const archived = params.filter === "archived";
   const [period, all, members] = await Promise.all([
-    hasPeriodView ? loadPeriodView(db, params) : null,
+    hasPeriodView ? loadPeriodView(db, params, user) : null,
     hasPeriodView ? [] : db.task.findMany({
-      where: params.filter === "done" ? {} : { archivedAt: archived ? { not: null } : null },
+      where: { AND: [visibleTaskWhere(user), params.filter === "done" ? {} : { archivedAt: archived ? { not: null } : null }] },
       include: overviewTaskInclude,
     }),
     db.user.findMany({ select: publicUser, orderBy: { createdAt: "asc" } }),

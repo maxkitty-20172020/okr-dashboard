@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { quarterBounds } from "../lib/week";
 import { ensurePeriodTree } from "../lib/period";
 import { tasksInPeriod } from "../lib/overview";
+import { SYSTEM_VIEWER } from "../lib/task-visibility";
 
 // Always creates its own temporary database; never uses the caller's DATABASE_URL.
 async function main() {
@@ -45,7 +46,7 @@ async function main() {
     assert.equal(second.total, 0);
     assert.deepEqual({ tasks: await db.task.findMany(), objectives: await db.objective.findMany() }, businessBefore);
     const { week } = await ensurePeriodTree(db, now);
-    assert.equal((await tasksInPeriod(db, week, quarter.id)).length, 15);
+    assert.equal((await tasksInPeriod(db, week, quarter.id, SYSTEM_VIEWER)).length, 15);
     console.log(`verified: ${week.label} tasks=15, R/A=30, businessFields=unchanged, secondRun=0`);
   } finally {
     await db.$disconnect();

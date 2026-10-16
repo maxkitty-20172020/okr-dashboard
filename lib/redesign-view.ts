@@ -18,7 +18,7 @@ export function weeklyOverview(view: Pick<Awaited<ReturnType<typeof loadOverview
     groups.get(item.ownerId)!.items.push(item);
   }
   const extraReports = view.myUnreported.filter(item => item.scopeType !== "TASK" || !view.tasks.some(task => task.id === item.scopeId && task.ownerId === user.id));
-  return { extraReports, total: view.expected.length, written: view.expected.length - pending.length, pending, groups: [...groups.values()] };
+  return { extraReports, total: view.expected.length, written: view.expected.length - pending.length, pending, groups: [...groups.values()].filter(group => user.role === "BOSS" || group.ownerId === user.id) };
 }
 
 export function objectiveTaskCount(keyResults: { _count: { tasks: number } }[]) {

@@ -11,6 +11,7 @@ import { canAuthorCheckIn, submitCheckIn, unreportedScopeIds } from "../lib/chec
 import { taskCompletionRate } from "../lib/okr";
 import { createTask, mutateTask } from "../lib/task-service";
 import { dateValue, today } from "../lib/tasks";
+import { SYSTEM_VIEWER } from "../lib/task-visibility";
 
 const folder = mkdtempSync(join(tmpdir(), "okr-integrity-"));
 const file = join(folder, "test.db");
@@ -99,7 +100,7 @@ test("无期限的跨周未结束任务、本周完成任务进入周汇报及�
   const cancelled = await db.task.create({ data: { ...base, title: "上周取消", status: "CANCELLED", completedAt: new Date(week.startAt.getTime() - 1), schedulePeriodId: week.id } });
   const future = await db.task.create({ data: { ...base, title: "周期结束才创建", createdAt: week.endAt } });
   const archived = await db.task.create({ data: { ...base, title: "已归档", archivedAt: createdAt } });
-  const tasks = await tasksInPeriod(db, week, quarter.id);
+  const tasks = await tasksInPeriod(db, week, quarter.id, SYSTEM_VIEWER);
   assert.deepEqual(tasks.map(t => t.id).sort(), [open.id, done.id].sort());
   for (const excluded of [previous, cancelled, future, archived]) assert.ok(!tasks.some(t => t.id === excluded.id));
   assert.equal(taskCompletionRate(tasks), 50);
@@ -121,9 +122,9 @@ test("原有排期、期限和季度关联仍取并集，取消时间为空时�
   const objective = await db.objective.create({ data: { ownerId: owner.id, title: "季度目标", cycle: quarter.label, periodId: quarter.id } });
   const kr = await db.keyResult.create({ data: { objectiveId: objective.id, title: "指标", targetValue: 100 } });
   const linked = await db.task.create({ data: { ...base, title: "关联季度", keyResultId: kr.id } });
-  const weekly = await tasksInPeriod(db, week, quarter.id);
+  const weekly = await tasksInPeriod(db, week, quarter.id, SYSTEM_VIEWER);
   for (const row of [scheduled, due, nullCancelled]) assert.ok(weekly.some(t => t.id === row.id));
   assert.ok(!weekly.some(t => t.id === linked.id));
-  const monthly = await tasksInPeriod(db, month, quarter.id);
+  const monthly = await tasksInPeriod(db, month, quarter.id, SYSTEM_VIEWER);
   assert.ok(monthly.some(t => t.id === linked.id));
 });

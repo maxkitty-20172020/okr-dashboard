@@ -1,3 +1,4 @@
+import { canViewTask } from "./task-visibility";
 import type { CheckInClient } from "./check-in";
 import { canAuthorCheckIn, checkInReportState } from "./check-in";
 import { hrefWithOverview, overviewQuery, parseOverviewSearch, resolveSelectedPeriod } from "./overview";
@@ -42,7 +43,7 @@ export async function loadTaskDetail(db: CheckInClient, user: Member, id: string
     ),
     listSubjectRaci(db, "TASK", id),
   ]);
-  if (!task) return null;
+  if (!task || !canViewTask(user, task)) return null;
   const owner = canConfirm(user, task);
   const writable = user.role !== "BOSS";
   const canCheckIn = await canAuthorCheckIn(db, user, "TASK", task.id);

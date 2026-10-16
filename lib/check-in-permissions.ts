@@ -1,3 +1,4 @@
+import { visibleTaskWhere } from "./task-visibility";
 import type { CheckInScopeType } from "@prisma/client";
 import { scopeKey, type CheckInClient } from "./check-in";
 import type { Member } from "./tasks";
@@ -22,7 +23,7 @@ export async function loadCheckInAuthorizer(
   const objectiveIds = ids("OBJECTIVE");
   const [tasks, keyResults, objectives] = await Promise.all([
     taskIds.length ? db.task.findMany({
-      where: { id: { in: taskIds } },
+      where: { id: { in: taskIds }, AND: [visibleTaskWhere(actor)] },
       select: { id: true, ownerId: true },
     }) : [],
     krIds.length ? db.keyResult.findMany({

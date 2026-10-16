@@ -19,6 +19,7 @@ export const updateLabels: Record<string, string> = {
   NO_CHANGE: "确认暂无变化",
   CHECKIN: "周期汇报",
   DETAILS: "调整任务",
+  TRANSFER: "移交负责人",
   COLLABORATION: "协作记录",
   MILESTONE: "节点记录",
   ARCHIVED: "归档任务",

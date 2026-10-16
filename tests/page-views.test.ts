@@ -149,6 +149,8 @@ test("补充非空筛选数据：完成、取消、归档、逾期、未确认�
       taskId: "permission-collaborator-only", userId: member.id, deliverable: "only C",
     }
   });
+  // R/A grants write authority only after visibility; creation keeps this parity fixture visible.
+  await db.taskUpdate.create({ data: { taskId: "permission-task-ra", authorId: member.id, kind: "CREATED", body: "创建权限测试事项", snapshot: "{}" } });
   await db.workPackage.create({ data: { id: "permission-wp", title: "WP", keyResultId: "wp-ra" } });
   await db.raciAssignment.createMany({
     data: [
@@ -245,6 +247,8 @@ test("N+1 查询次数随任务数增长被消除（真实 Prisma SELECT 事件�
   const scopes: CheckInTarget[] = [];
   for (let index = 0; index < 40; index++) {
     const task = await db.task.create({ data: { title: `scale ${index}`, ownerId: other.id } });
+    // Visible non-owner keeps exercising both ownership and RACI queries.
+    await db.taskUpdate.create({ data: { taskId: task.id, authorId: member.id, kind: "CREATED", body: "性能测试创建", snapshot: "{}" } });
     scopes.push({ scopeType: "TASK", scopeId: task.id });
   }
   const counts: { size: number; before: number; after: number }[] = [];

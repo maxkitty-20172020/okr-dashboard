@@ -101,7 +101,7 @@ export async function saveTaskAction(_state: ActionState, formData: FormData): P
 export async function taskMutationAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireSession();
   const operation = text(formData, "operation");
-  const operations = ["details", "progress", "collaborator", "contribution", "removeCollaborator", "milestone", "toggleMilestone", "archive", "restore"] as const;
+  const operations = ["details", "progress", "collaborator", "contribution", "removeCollaborator", "milestone", "toggleMilestone", "archive", "restore", "transfer"] as const;
   const selected = operations.find(item => item === operation);
   if (!selected) return { error: "操作无效，请刷新页面。" };
   try {

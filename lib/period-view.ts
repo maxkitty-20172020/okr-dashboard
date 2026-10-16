@@ -9,16 +9,18 @@ import {
 export type SearchParams = Record<string, string | string[] | undefined>;
 
 /** Shared period scope and missing-report calculation for overview and task drill-down. */
-export async function loadPeriodView(db: CheckInClient, params: SearchParams) {
+export async function loadPeriodView(db: CheckInClient, params: SearchParams, user: import("./tasks").Member) {
   const raw = parseOverviewSearch(params);
   const tree = await resolveSelectedPeriod(db, raw);
   const search = { ...raw, kind: tree.selected.kind, period: tree.selected.label };
   const query = overviewQuery(search);
-  const [tasks, objectives, checkIns] = await Promise.all([
-    tasksInPeriod(db, tree.selected, tree.quarter.id),
+  const [tasks, objectives, allCheckIns] = await Promise.all([
+    tasksInPeriod(db, tree.selected, tree.quarter.id, user),
     objectivesForQuarter(db, tree.quarter.id),
     latestCheckInMap(db, tree.selected.id),
   ]);
+  const visibleIds = new Set(tasks.map(task => task.id));
+  const checkIns = new Map([...allCheckIns].filter(([, row]) => !user || row.scopeType !== "TASK" || visibleIds.has(row.scopeId ?? "")));
   const expected = expectedTargets(search.kind, tasks, objectives, search);
   const scope = expectedCheckInScope(search.kind);
   const missingIds = new Set(expected
