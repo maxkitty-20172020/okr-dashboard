@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
+import { logoutAction } from "@/lib/actions";
 import { changeOwnPasswordAction } from "@/lib/member-actions";
 import { AppShell } from "@/components/app-shell";
 import { ActionForm, SubmitButton } from "@/components/action-form";
@@ -24,5 +25,6 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         <div className="form-actions"><SubmitButton>保存新密码</SubmitButton>{!user.mustChangePassword && <Link className="text-link" href="/">进入工作台</Link>}</div>
       </ActionForm>
     </section>
+    <section className="surface detail-section account-links" aria-label="我的入口">{user.role === "BOSS" && <Link className="text-link" href="/members">成员管理</Link>}<Link className="text-link" href="/guide">填写指南</Link><form action={logoutAction}><button className="button secondary" type="submit">退出登录</button></form></section>
   </div></AppShell>;
 }

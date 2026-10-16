@@ -3,10 +3,15 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { taskMutationAction } from "@/lib/actions";
-import { areaLabels, dateLabel, dateValue, kindLabels, timeLabel, today, updateLabels, type TaskRow } from "@/lib/tasks";
+import { areaLabels, dateLabel, dateValue, timeLabel, today, updateLabels, type TaskRow } from "@/lib/tasks";
 import { ActionForm, SubmitButton } from "@/components/action-form";
-import { TaskBadges } from "@/components/task-card";
-import { TaskFields } from "@/components/task-fields";
+import { TaskBadges } from "@/components/ui/task-card";
+import { ChoiceChips } from "@/components/ui/choice-chips";
+import { Timeline } from "@/components/ui/timeline";
+import { Notice } from "@/components/ui/notice";
+import { Button } from "@/components/ui/button";
+import { MilestoneToggle } from "@/components/milestone-toggle";
+import { TaskDetailsForm } from "@/components/transfer-confirmation";
 import { ProgressForm } from "@/components/progress-form";
 import { CheckInForm } from "@/components/check-in-form";
 import { checkInStateLabels, periodKindLabels } from "@/lib/check-in";
@@ -40,20 +45,17 @@ export default async function TaskDetailPage({ params, searchParams }: {
   const view = await loadTaskDetail(prisma, user, id, query);
   if (!view) notFound();
   const { tree, returnQuery, backHref, task, members, keyResults, checkIns,
-    owner, writable, canCheckIn, reportState, active, myContribution, available,
+    owner, writable, canCheckIn, reportState, currentWeek, currentWeekReportState, active, myContribution, available,
     taskClosed, activeDeliverables, overdueCollaboratorIds, deliveredCount,
     completedMilestoneCount } = view;
-  return <div className="page"><Link className="back-link" href={backHref}>← {query.exception || query.kind ? "返回筛选后的任务清单" : "任务与协作"}</Link>
+  return <div className="page task-detail-page"><Link className="back-link" href={backHref}>← {query.exception || query.kind ? "返回筛选后的任务清单" : "任务与协作"}</Link>
     <header className="page-heading detail-heading">
       <div>
-        <p className="eyebrow">
-          {areaLabels[task.area]} · {kindLabels[task.kind]}
-          {task.scope ? ` · ${task.scope}` : ""}
-        </p>
+        <TaskBadges task={task} full />
         <h1>{task.title}</h1>
-        <TaskBadges task={task} />
+        <p className="muted">{areaLabels[task.area]} · {task.owner.name}{task.scope ? ` · ${task.scope}` : ""}</p>
       </div>
-      {!writable && <span className="readonly-label">老板账号 · 只读</span>}
+      {!writable && <span className="readonly-label">只看不改</span>}
     </header>
     {query.created && writable && <p className="form-success" role="status">任务已创建。主负责人可在下方安排协作与关键节点。</p>}
     {
@@ -65,15 +67,36 @@ export default async function TaskDetailPage({ params, searchParams }: {
       </div>
     }
     {task.owner.role === "BOSS" && <p className="notice">这是原来分配给老板的历史任务。{writable ? "请在「任务资料与分工」中移交给填报成员，再由新负责人确认进展。" : "请由填报成员接手并继续跟进。"}</p>}
+    {(task.health === "AT_RISK" || task.status === "BLOCKED") && !taskClosed && <Notice tone="risk">需要支持：{task.riskNote || "待主负责人补充"}</Notice>}
     <div className="detail-grid"><div className="detail-main">
+      {
+        owner && !task.archivedAt
+        && <section className="surface detail-section detail-primary" id="update">
+          <h2>{taskClosed ? "重新开启 / 调整结果" : "更新进展"}</h2>
+          <p className="section-help">主负责人确认整体情况，协作者在自己的交付中更新。</p>
+          <ProgressForm task={
+            {
+              id: task.id,
+              version: task.version,
+              status: task.status,
+              health: task.health,
+              nextAction: task.nextAction,
+              riskNote: task.riskNote,
+              nextFollowUpAt: dateValue(task.nextFollowUpAt),
+              today: dateValue(today())
+            }
+          } />
+        </section>
+      }
+      {writable && myContribution && active && <section className="surface detail-section detail-primary"><h2>我的交付</h2><p>{myContribution.deliverable}</p><p className="muted small">期限 {dateLabel(myContribution.dueAt)}</p><Mutation task={task} operation="contribution" label="更新我的协作"><ChoiceChips name="done" legend="交付状态" help="选择你负责的交付是否完成。例：已交付。" defaultValue={String(myContribution.done)} options={[{ value: "false", label: "推进中" }, { value: "true", label: "已交付" }]} /><div className="fields"><label className="span-all">我的进展<span className="field-hint">写自己已交付的部分，方便主负责人衔接。</span><textarea name="note" required maxLength={2000} defaultValue={myContribution.note} rows={2} placeholder="例：已提交未来 8 周销量预测" /></label></div><div className="form-actions"><SubmitButton>保存我的协作</SubmitButton></div></Mutation></section>}
       <section className="surface detail-section">
         <div className="section-heading">
           <h2>当前情况</h2>
           <span className="muted small">主负责人：{task.owner.name}</span>
         </div>
         <dl className="summary-grid">
-          <div className="span-all"><dt>完成标准</dt><dd>{task.completionCriteria || "待补充完成标准"}</dd></div>
-          <div className="span-all"><dt>最近进展</dt><dd>{task.latestProgress || "尚未记录进展"}</dd></div>
+          <div className="span-all"><dt>做到什么算完成</dt><dd>{task.completionCriteria || "待补充完成标准"}</dd></div>
+          <div className="span-all"><dt>最新进展</dt><dd>{task.latestProgress || "尚未记录进展"}</dd></div>
           {
             !taskClosed && <div className="span-all"><dt>下一步</dt><dd>{task.nextAction || "待明确下一步动作"}</dd></div>
           }
@@ -85,7 +108,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
           <div><dt>下次跟进</dt><dd>{taskClosed ? "已结束，无需跟进" : dateLabel(task.nextFollowUpAt)}</dd></div>
           <div><dt>最近确认</dt><dd>{task.lastConfirmedAt ? timeLabel(task.lastConfirmedAt) : "尚未确认"}</dd></div>
           <div>
-            <dt>关联关键结果</dt>
+            <dt>关联目标</dt>
             <dd>
               {
                 task.keyResult
@@ -95,19 +118,19 @@ export default async function TaskDetailPage({ params, searchParams }: {
             </dd>
           </div>
           <div>
-            <dt>本周期汇报</dt>
+            <dt>本周进展状态</dt>
             <dd>
               <span className={
-                `badge ${reportState === "UNREPORTED" ? "amber" : reportState === "NO_CHANGE" ? "accent" : "good"}`
+                `badge ${currentWeekReportState === "UNREPORTED" ? "amber" : currentWeekReportState === "NO_CHANGE" ? "accent" : "good"}`
               }>
-                {checkInStateLabels[reportState]}
-              </span> · {periodKindLabels[tree.selected.kind]} {tree.selected.label}
+                {checkInStateLabels[currentWeekReportState]}
+              </span> · 周更新 {currentWeek.label}
             </dd>
           </div>
         </dl>
       </section>
       {
-        canCheckIn
+        canCheckIn && !owner
         && <section className="surface detail-section" id="checkin">
           <h2>{periodKindLabels[tree.selected.kind]}</h2>
           {owner ? <p className="section-help">本周更新进展即视为已汇报</p> : <>
@@ -132,25 +155,6 @@ export default async function TaskDetailPage({ params, searchParams }: {
           </p>
         </section>
       }
-      {
-        owner && !task.archivedAt
-        && <section className="surface detail-section" id="update">
-          <h2>{taskClosed ? "重新开启 / 调整结果" : "更新整体进展"}</h2>
-          <p className="section-help">主负责人确认整体情况，协作者在自己的交付中更新。</p>
-          <ProgressForm task={
-            {
-              id: task.id,
-              version: task.version,
-              status: task.status,
-              health: task.health,
-              nextAction: task.nextAction,
-              riskNote: task.riskNote,
-              nextFollowUpAt: dateValue(task.nextFollowUpAt),
-              today: dateValue(today())
-            }
-          } />
-        </section>
-      }
       <section className="surface detail-section">
         <div className="section-heading">
           <h2>协作分工</h2>
@@ -172,34 +176,13 @@ export default async function TaskDetailPage({ params, searchParams }: {
                   </p>
                   {c.note && <p className="contribution-note">{c.note}</p>}
                   {
-                    writable && myContribution?.id === c.id && active
-                    && <Mutation task={task} operation="contribution" label="更新我的协作">
-                      <div className="fields">
-                        <label>交付状态<span className="field-hint">选择你负责的交付是否完成。例：已交付。</span><select name="done" defaultValue={String(c.done)}>
-                          <option value="false">推进中</option>
-                          <option value="true">已交付</option>
-                        </select>
-                        </label>
-                        <label className="span-all">我的进展<span className="field-hint">写自己已交付的部分，方便主负责人衔接。</span><textarea
-                          name="note"
-                          required
-                          maxLength={2000}
-                          defaultValue={c.note}
-                          rows={2}
-                          placeholder="例：已提交未来 8 周销量预测" />
-                        </label>
-                      </div>
-                      <div className="form-actions"><SubmitButton secondary>保存我的协作</SubmitButton></div>
-                    </Mutation>
-                  }
-                  {
                     owner && active
                     && <details className="inline-details">
                       <summary>调整这项分工</summary>
                       <p className="muted small">移除后不再显示在协作清单中，历史记录保留。</p>
                       <Mutation task={task} operation="removeCollaborator">
                         <input type="hidden" name="collaboratorId" value={c.id} />
-                        <SubmitButton secondary>移除协作分工</SubmitButton>
+                        <Button variant="danger">移除协作分工</Button>
                       </Mutation>
                     </details>
                   }
@@ -213,10 +196,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
             <summary>＋ 安排协作</summary>
             <Mutation task={task} operation="collaborator" label="安排协作">
               <div className="fields">
-                <label>协作成员<span className="field-hint">选需要一起推进的人。例：王芳。</span><select name="userId" required>
-                  {available.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-                </label>
+                {available.length <= 6 ? <ChoiceChips name="userId" legend="协作成员" help="选需要一起推进的人。例：王芳。" defaultValue={available[0]?.id} required options={available.map(m => ({ value: m.id, label: m.name }))} /> : <label>协作成员<span className="field-hint">选需要一起推进的人。例：王芳。</span><select name="userId" required>{available.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>}
                 <label>交付期限<span className="field-hint">选对方交付的日期，可留空。例：本周五。</span><input type="date" name="collaboratorDueAt" /></label>
                 <label className="span-all">交付内容<span className="field-hint">写对方需要交给你的具体结果。</span><input name="deliverable" required maxLength={500} placeholder="例：提交未来 8 周的销售预测" />
                 </label>
@@ -226,8 +206,8 @@ export default async function TaskDetailPage({ params, searchParams }: {
           </details>
         }
       </section>
-      <section className="surface detail-section">
-        <div className="section-heading"><h2>交付物与工作包</h2><span className="muted small">协作子项与交付物清单（只读查看）</span></div>
+      {activeDeliverables.length > 0 && <section className="surface detail-section">
+        <div className="section-heading"><h2>其他交付与分组</h2><span className="muted small">协作子项与交付物清单（只读查看）</span></div>
         {
           activeDeliverables.length
             ? <div className="collaborator-list">
@@ -258,7 +238,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
                     <div>
                       <p>{item.title}</p>
                       <small className="muted">
-                        {item.status} · 交付 {item.deliverables.length} 项 · {dateLabel(item.dueAt)}
+                        {({ TODO: "未开始", IN_PROGRESS: "推进中", DONE: "已完成", CANCELLED: "已取消" } as Record<string, string>)[item.status] ?? "推进中"} · 交付 {item.deliverables.length} 项 · {dateLabel(item.dueAt)}
                       </small>
                     </div>
                   </li>
@@ -266,7 +246,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
             }
           </ul>
         }
-      </section>
+      </section>}
       <section className="surface detail-section">
         <div className="section-heading">
           <h2>关键节点</h2>
@@ -284,10 +264,7 @@ export default async function TaskDetailPage({ params, searchParams }: {
                       <div><p>{m.title}</p><small className="muted">{dateLabel(m.dueAt)}</small></div>
                       {
                         owner && active
-                        && <Mutation task={task} operation="toggleMilestone">
-                          <input type="hidden" name="milestoneId" value={m.id} />
-                          <SubmitButton secondary>{m.done ? "重新开启" : "标记完成"}</SubmitButton>
-                        </Mutation>
+                        && <MilestoneToggle taskId={task.id} version={task.version} id={m.id} title={m.title} done={m.done} />
                       }
                     </li>
                 )
@@ -314,49 +291,21 @@ export default async function TaskDetailPage({ params, searchParams }: {
         && <details className="surface edit-disclosure detail-section" id="details">
           <summary>任务资料与分工</summary>
           <p className="section-help">填报成员可以维护任务资料和移交负责人，变更会留下记录。</p>
-          <Mutation task={task} operation="details" label="修改任务资料">
-            <TaskFields members={members} keyResults={keyResults} currentUserId={user.id} task={task} />
-            <div className="form-actions"><SubmitButton>保存任务资料</SubmitButton></div>
-          </Mutation>
+          <TaskDetailsForm members={members} keyResults={keyResults} currentUserId={user.id} task={task} />
           {
             taskClosed
             && <div className="archive-action">
               <p className="muted small">已结束的任务可归档，需要时可以恢复。</p>
-              <Mutation task={task} operation="archive"><SubmitButton secondary>归档任务</SubmitButton></Mutation>
+              <Mutation task={task} operation="archive"><Button variant="danger">归档任务</Button></Mutation>
             </div>
           }
         </details>
       }
-    </div><aside className="surface detail-section history-section"><h2>跟进与汇报</h2><p className="section-help">更新进展会自动记录为本周汇报，旧汇报记录继续保留。</p>
-        <ol className="history-list">
-          {
-            checkIns.map(
-              item =>
-                <li key={item.id}>
-                  <p className="muted small">
-                    {timeLabel(item.createdAt)} · {item.author.name} · {periodKindLabels[item.period.kind]} {item.period.label}
-                  </p>
-                  <span className="history-kind">{checkInStateLabels[item.status]}</span>
-                  <p className="history-body">{item.body}</p>
-                  {item.metricNote && <p className="history-snapshot">指标：{item.metricNote}</p>}
-                  {item.blocker && <p className="history-snapshot">阻塞：{item.blocker}</p>}
-                  {item.nextStep && <p className="history-snapshot">下一步：{item.nextStep}</p>}
-                </li>
-            )
-          }
-          {
-            task.updates.map(
-              u =>
-                <li key={u.id}>
-                  <p className="muted small">{timeLabel(u.createdAt)} · {u.author?.name ?? "系统"}</p>
-                  <span className="history-kind">{updateLabels[u.kind] ?? u.kind}</span>
-                  <p className="history-body">{u.body}</p>
-                  <HistorySnapshot raw={u.snapshot} />
-                </li>
-            )
-          }
-        </ol>
-        {!checkIns.length && !task.updates.length && <p className="empty-inline">还没有跟进记录。</p>}
+    </div><aside className="surface detail-section history-section"><h2>动态</h2><p className="section-help">更新进展会自动记录为本周汇报，旧汇报记录继续保留。</p>
+        <Timeline items={[
+          ...checkIns.map(item => ({ id: `report-${item.id}`, who: item.author.name, action: `${periodKindLabels[item.period.kind]} · ${checkInStateLabels[item.status]}`, time: timeLabel(item.createdAt), body: item.body, at: item.createdAt.getTime(), detail: <>{item.metricNote && <p className="history-snapshot">指标：{item.metricNote}</p>}{item.blocker && <p className="history-snapshot">阻塞：{item.blocker}</p>}{item.nextStep && <p className="history-snapshot">下一步：{item.nextStep}</p>}</> })),
+          ...task.updates.map(item => ({ id: item.id, who: item.author?.name ?? "系统", action: updateLabels[item.kind] ?? "调整事项", time: timeLabel(item.createdAt), body: item.body, at: item.createdAt.getTime(), detail: <HistorySnapshot raw={item.snapshot} /> })),
+        ].sort((a, b) => b.at - a.at)} />
       </aside></div>
   </div>;
 }
