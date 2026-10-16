@@ -1,3 +1,4 @@
+import { visibleTaskWhere } from "@/lib/task-visibility";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
@@ -5,7 +6,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 export const dynamic = "force-dynamic";
 export default async function GuidePage() {
   const user = await requireSession();
-  const example = await prisma.task.findFirst({ where: { title: { startsWith: "【填写案例】" }, archivedAt: null }, select: { id: true, title: true }, orderBy: { createdAt: "desc" } });
+  const example = await prisma.task.findFirst({ where: { AND: [visibleTaskWhere(user)], title: { startsWith: "【填写案例】" }, archivedAt: null }, select: { id: true, title: true }, orderBy: { createdAt: "desc" } });
   return <div className="page">
     <header className="page-heading"><div><p className="eyebrow">怎么填</p><h1>填写指南</h1><p className="muted">先记一件事，再按当前情况持续更新。</p></div><div className="heading-actions">{example && <Link className="button secondary" href={`/tasks/${example.id}`}>打开填写案例</Link>}{user.role !== "BOSS" ? <Link className="button" href="/tasks/new">＋ 记一件事</Link> : <StatusBadge>只看不改</StatusBadge>}</div></header>
     <div className="guide-sections">

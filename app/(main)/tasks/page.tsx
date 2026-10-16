@@ -34,7 +34,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       <form key={JSON.stringify(params)} className="filter-search" action="/tasks">
         {(["kind", "period", "exception", "area", "filter", "relation"] as const).map(name => params[name] ? <input key={name} type="hidden" name={name} value={params[name]} /> : null)}
         <Field label="搜索" help="按事项、范围或负责人查找。"><input type="search" name="q" defaultValue={params.q} placeholder="例：旺季备货" /></Field>
-        <Field label="成员" help="查看主责或协作的事项。"><select name="person" defaultValue={params.person ?? ""}><option value="">全部成员</option>{members.map(m => <option value={m.id} key={m.id}>{m.name}</option>)}</select></Field>
+        {user.role === "BOSS" && <Field label="成员" help="查看主责或协作的事项。"><select name="person" defaultValue={params.person ?? ""}><option value="">全部成员</option>{members.map(m => <option value={m.id} key={m.id}>{m.name}</option>)}</select></Field>}
         <Button variant="secondary">筛选</Button>
       </form>
       {chips("area", "领域", [["", "全部领域"], ...Object.entries(areaLabels)])}

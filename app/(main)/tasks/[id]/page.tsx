@@ -11,6 +11,7 @@ import { Timeline } from "@/components/ui/timeline";
 import { Notice } from "@/components/ui/notice";
 import { Button } from "@/components/ui/button";
 import { MilestoneToggle } from "@/components/milestone-toggle";
+import { BossTransferForm } from "@/components/boss-transfer-form";
 import { TaskDetailsForm } from "@/components/transfer-confirmation";
 import { ProgressForm } from "@/components/progress-form";
 import { CheckInForm } from "@/components/check-in-form";
@@ -61,13 +62,14 @@ export default async function TaskDetailPage({ params, searchParams }: {
     {
       task.archivedAt
       && <div className="notice">任务已归档，历史记录保留。{
-        writable
+        owner
         && <Mutation task={task} operation="restore"><SubmitButton secondary>恢复归档任务</SubmitButton></Mutation>
       }
       </div>
     }
-    {task.owner.role === "BOSS" && <p className="notice">这是原来分配给老板的历史任务。{writable ? "请在「任务资料与分工」中移交给填报成员，再由新负责人确认进展。" : "请由填报成员接手并继续跟进。"}</p>}
+    {task.owner.role === "BOSS" && <p className="notice">这是原来分配给老板的历史任务。{user.role === "BOSS" ? "请在「移交负责人」中指定填报成员接手。" : "请联系老板移交给填报成员。"}</p>}
     {(task.health === "AT_RISK" || task.status === "BLOCKED") && !taskClosed && <Notice tone="risk">需要支持：{task.riskNote || "待主负责人补充"}</Notice>}
+    {user.role === "BOSS" && <BossTransferForm task={task} members={members} />}
     <div className="detail-grid"><div className="detail-main">
       {
         owner && !task.archivedAt
@@ -287,10 +289,10 @@ export default async function TaskDetailPage({ params, searchParams }: {
         }
       </section>
       {
-        writable && !task.archivedAt
+        owner && !task.archivedAt
         && <details className="surface edit-disclosure detail-section" id="details">
           <summary>任务资料与分工</summary>
-          <p className="section-help">填报成员可以维护任务资料和移交负责人，变更会留下记录。</p>
+          <p className="section-help">主负责人可以维护任务资料和移交负责人，变更会留下记录。</p>
           <TaskDetailsForm members={members} keyResults={keyResults} currentUserId={user.id} task={task} />
           {
             taskClosed

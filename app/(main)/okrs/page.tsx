@@ -1,3 +1,4 @@
+import { visibleTaskWhere } from "@/lib/task-visibility";
 import { okrErrorMessages } from "@/lib/okr-service";
 import { OkrBoard } from "@/components/okr-board";
 import { requireSession } from "@/lib/auth";
@@ -12,7 +13,7 @@ export default async function OkrsPage({ searchParams }: { searchParams: Promise
   const [users, objectives] = await Promise.all([
     prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] }),
     prisma.objective.findMany({
-      include: { owner: true, keyResults: { orderBy: { createdAt: "asc" }, include: { _count: { select: { tasks: { where: { archivedAt: null } } } } } } },
+      include: { owner: true, keyResults: { orderBy: { createdAt: "asc" }, include: { _count: { select: { tasks: { where: { archivedAt: null, AND: [visibleTaskWhere(session)] } } } } } } },
       orderBy: { createdAt: "asc" },
     }),
   ]);

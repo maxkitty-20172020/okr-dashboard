@@ -22,7 +22,7 @@ test("全部事项筛选胶囊、数量、查询参数与清除筛选", async ({
   await page.goto("/tasks");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("全部事项");
   await page.locator('[name="q"]').fill(title);
-  await page.locator('[name="person"]').selectOption({ label: "李明" });
+  await expect(page.locator('[name="person"]')).toHaveCount(0);
   await page.getByRole("button", { name: "筛选", exact: true }).click();
   const area = page.getByRole("group", { name: "领域", exact: true });
   await area.getByRole("link", { name: "其他事项" }).click();
@@ -36,7 +36,7 @@ test("全部事项筛选胶囊、数量、查询参数与清除筛选", async ({
   await page.getByRole("link", { name: "清除筛选", exact: true }).click();
   await expect(page).toHaveURL("/tasks");
   await expect(page.locator('[name="q"]')).toHaveValue("");
-  await expect(page.locator('[name="person"]')).toHaveValue("");
+  await expect(page.locator('[name="person"]')).toHaveCount(0);
   await expect(page.getByRole("group", { name: "查看范围" }).getByRole("link", { name: /^未结束/ })).toHaveAttribute("aria-current", "true");
   // Clearing drill-down filters keeps only its kind/period context.
   await page.goto("/tasks?kind=WEEK&exception=unreported&area=OTHER&relation=owned");
