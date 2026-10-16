@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { submitCheckInAction } from "@/lib/actions";
+import { ChoiceChips } from "@/components/ui/choice-chips";
 import { checkInStateLabels } from "@/lib/check-in";
 
 export function CheckInForm({
@@ -21,12 +22,7 @@ export function CheckInForm({
     <input type="hidden" name="scopeType" value={scopeType} />
     <input type="hidden" name="scopeId" value={scopeId} />
     <div className="fields">
-      <label className={compact ? "span-all" : ""}>本次汇报<span className="field-hint">选择有新进展或暂无变化。例：提交进展事实。</span>
-        <select name="status" value={status} onChange={event => setStatus(event.target.value)}>
-          <option value="SUBMITTED">提交进展事实</option>
-          <option value="NO_CHANGE">确认暂无变化</option>
-        </select>
-      </label>
+      <ChoiceChips name="status" legend="本次汇报" help="选择有新进展或暂无变化。例：提交进展事实。" value={status} onChange={setStatus} className={compact ? "span-all" : ""} options={[{ value: "SUBMITTED", label: "提交进展事实" }, { value: "NO_CHANGE", label: "确认暂无变化" }]} />
       <label className="span-all">{status === "NO_CHANGE" ? "补充说明（选填）" : "进展事实"}
         <span className="field-hint">写这个周期已经发生的变化，一两句就够。</span>
         <textarea name="body" rows={compact ? 2 : 3} maxLength={2000} required={status !== "NO_CHANGE"} placeholder={status === "NO_CHANGE" ? "例：仍在等待测试结果，本周情况不变" : "例：主图已替换，本月点击率提升 18%"} />
