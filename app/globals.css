@@ -287,7 +287,8 @@ textarea { resize: vertical; }
   .lane-switch label:has(input:checked) span { background: var(--ink); color: white; border-color: var(--ink); }
   .lanes-grid { display: block; }.lanes-grid .lane { display: none; }
   .dashboard-lanes:has(input[value="0"]:checked) #lane-0, .dashboard-lanes:has(input[value="1"]:checked) #lane-1, .dashboard-lanes:has(input[value="2"]:checked) #lane-2 { display: block; }
-  .mobile-sticky-submit { position: sticky; bottom: calc(64px + env(safe-area-inset-bottom)); background: var(--surface-2); padding: 12px 0; margin-bottom: 0; }.mobile-sticky-submit > .button { flex: 1; min-height: 48px; }
+  .mobile-sticky-submit { position: sticky; bottom: calc(56px + env(safe-area-inset-bottom)); z-index: 40; background: var(--surface-2); margin: 0 -20px -20px; padding: 12px 20px 16px; border-top: 1px solid var(--line); box-shadow: 0 -8px 16px rgba(30,27,22,.06); border-radius: 0 0 14px 14px; }
+  html { scroll-padding-bottom: calc(160px + env(safe-area-inset-bottom)); }.mobile-sticky-submit > .button { flex: 1; min-height: 48px; }
   .task-grid { grid-template-columns: minmax(0,1fr); }
   .page-heading { flex-wrap: wrap; }.heading-actions { flex-wrap: wrap; }
   .back-link, .text-link { display: inline-flex; align-items: center; min-height: 44px; }
