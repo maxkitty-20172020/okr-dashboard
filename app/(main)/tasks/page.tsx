@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
-import { TaskCard } from "@/components/task-card";
+import { TaskCard } from "@/components/ui/task-card";
+import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
+import { Notice } from "@/components/ui/notice";
 import { PeriodSwitcher } from "@/components/period-switcher";
 import { reportStateLabel, expectedCheckInScope } from "@/lib/check-in";
 import { areaLabels } from "@/lib/tasks";
 import { hrefWithOverview } from "@/lib/overview";
+import { periodDrillLabel, taskFilterHref } from "@/lib/redesign-view";
 import { loadTaskList, type TaskListParams } from "@/lib/tasks-view";
 
 export const dynamic = "force-dynamic";
@@ -13,98 +17,32 @@ export const dynamic = "force-dynamic";
 export default async function TasksPage({ searchParams }: { searchParams: Promise<TaskListParams> }) {
   const user = await requireSession();
   const params = await searchParams;
-  const { search, hasPeriodView, archived, tree, periodSearch, query, members,
-    tasks, exceptionLabel: rawExceptionLabel } = await loadTaskList(prisma, user, params);
-  const exceptionLabel = search.exception === "unreported" ? reportStateLabel("UNREPORTED", expectedCheckInScope(search.kind)) : rawExceptionLabel;
+  const { search, hasPeriodView, archived, tree, periodSearch, query, members, tasks, exceptionLabel: rawLabel } = await loadTaskList(prisma, user, params);
+  const exceptionLabel = search.exception === "unreported" ? reportStateLabel("UNREPORTED", expectedCheckInScope(search.kind)) : search.exception === "pending" ? "待更新" : rawLabel;
+  const href = (patch: Partial<TaskListParams>) => taskFilterHref(params, patch);
+  const clearHref = hasPeriodView ? hrefWithOverview("/tasks", { kind: periodSearch.kind, period: periodSearch.period }) : "/tasks";
+  const chips = (name: "area" | "filter" | "relation", title: string, options: [string, string][]) => <div className="filter-group" role="group" aria-label={title}><span className="field-label">{title}</span><div className="link-chips">{options.map(([value, label]) => {
+    const active = (params[name] ?? "") === value;
+    return <Link key={value} className={`chip ${active ? "active" : ""}`} aria-current={active ? "true" : undefined} href={href({ [name]: value })}>{label}{active && <strong>{tasks.length}</strong>}</Link>;
+  })}</div></div>;
   return <div className="page">
-    {hasPeriodView && <Link className="back-link" href={hrefWithOverview("/overview", periodSearch)}>← 周期汇报</Link>}
-    <header className="page-heading">
-      <div>
-        <p className="eyebrow">{hasPeriodView ? "周期下钻" : "共享清单"}</p>
-        <h1>{exceptionLabel ? `${exceptionLabel}事项` : "任务与协作"}</h1>
-        <p className="muted">{hasPeriodView ? "筛选条件写在地址栏里，返回周期总览时会保留。" : "按事项持续跟进。同一任务只统计一次，主责与协作清楚呈现。"}</p>
-      </div>
-      {user.role !== "BOSS" && <Link href="/tasks/new" className="button">＋ 新建任务</Link>}
-    </header>
+    {hasPeriodView && <Link className="back-link" href={hrefWithOverview("/overview", periodSearch)}>← 返回每周进展</Link>}
+    <header className="page-heading"><div><p className="eyebrow">共享清单</p><h1>全部事项</h1><p className="muted">按成员、领域和查看范围，找到要跟进的事。</p></div>{user.role !== "BOSS" && <Link href="/tasks/new" className="button">＋ 记一件事</Link>}</header>
+    {hasPeriodView && <Notice>周期下钻：{periodDrillLabel(tree?.selected.label ?? "")} · {exceptionLabel || "周期事项"}</Notice>}
     {tree && <PeriodSwitcher pathname="/tasks" search={periodSearch} tree={tree} />}
-    <form className="filters surface" action="/tasks">
-      {hasPeriodView && <input type="hidden" name="kind" value={periodSearch.kind} />}
-      {hasPeriodView && <input type="hidden" name="period" value={periodSearch.period} />}
-      {search.exception && <input type="hidden" name="exception" value={search.exception} />}
-      <label className="search-field">搜索<input type="search" name="q" defaultValue={params.q} placeholder="任务、产品、负责人…" /></label>
-      <label>成员<select name="person" defaultValue={params.person ?? ""}>
-        <option value="">全部成员</option>
-        {members.map(m => <option value={m.id} key={m.id}>{m.name}</option>)}
-      </select>
-      </label>
-      <label>责任领域<select name="area" defaultValue={params.area ?? ""}>
-        <option value="">全部领域</option>
-        {Object.entries(areaLabels).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-      </select>
-      </label>
-      <label>查看范围<select name="filter" defaultValue={params.filter ?? ""}>
-        <option value="">未结束</option>
-        <option value="attention">需关注</option>
-        <option value="followup">待跟进确认</option>
-        <option value="done">本周完成</option>
-        <option value="closed">全部已结束</option>
-        <option value="archived">已归档</option>
-      </select>
-      </label>
-      {
-        user.role !== "BOSS"
-        && <label>与我相关<select name="relation" defaultValue={params.relation ?? ""}>
-          <option value="">全部任务</option>
-          <option value="owned">我主责的</option>
-          <option value="collaborating">我协作的</option>
-        </select>
-        </label>
-      }
-      <button className="button secondary" type="submit">筛选</button>
-      <Link
-        href={
-          hasPeriodView
-            ? hrefWithOverview("/tasks", { kind: periodSearch.kind, period: periodSearch.period })
-            : "/tasks"
-        }
-        className="text-link">重置</Link>
-    </form>
-    {
-      search.exception
-      && <p className="notice">当前查看：{exceptionLabel}。{tree ? `周期 ${tree.selected.label}。` : ""}
-        <Link href={
-          hrefWithOverview(
-            "/tasks",
-            {
-              kind: periodSearch.kind,
-              period: periodSearch.period,
-              person: search.person,
-              area: search.area,
-              q: search.q,
-              relation: search.relation,
-              filter: search.filter
-            }
-          )
-        }>去掉异常筛选</Link>
-      </p>
-    }
-    <div className="section-heading">
-      <h2>{archived ? "归档任务" : "任务清单"} <span className="count">{tasks.length}</span></h2>
-      <span className="muted small">{hasPeriodView ? "与周期总览使用同一套筛选" : "风险优先 · 到期跟进优先"}</span>
-    </div>
-    {
-      tasks.length
-        ? <div className="task-grid">
-          {tasks.map(t => <TaskCard key={t.id} task={t} userId={user.id} query={query} />)}
-        </div>
-        : <div className="empty-state">
-          <h3>这个范围内还没有任务</h3>
-          <p>可以调整筛选条件，或创建一件新的事项。</p>
-          <Link
-            className="button secondary"
-            href={hasPeriodView ? hrefWithOverview("/overview", periodSearch) : "/tasks"}>返回{hasPeriodView ? "周期汇报" : "未结束任务"}
-          </Link>
-        </div>
-    }
+    <section className="surface detail-section task-filters" aria-label="事项筛选">
+      <form key={JSON.stringify(params)} className="filter-search" action="/tasks">
+        {(["kind", "period", "exception", "area", "filter", "relation"] as const).map(name => params[name] ? <input key={name} type="hidden" name={name} value={params[name]} /> : null)}
+        <Field label="搜索" help="按事项、范围或负责人查找。"><input type="search" name="q" defaultValue={params.q} placeholder="例：旺季备货" /></Field>
+        <Field label="成员" help="查看主责或协作的事项。"><select name="person" defaultValue={params.person ?? ""}><option value="">全部成员</option>{members.map(m => <option value={m.id} key={m.id}>{m.name}</option>)}</select></Field>
+        <Button variant="secondary">筛选</Button>
+      </form>
+      {chips("area", "领域", [["", "全部领域"], ...Object.entries(areaLabels)])}
+      {chips("filter", "查看范围", [["", "未结束"], ["attention", "需关注"], ["followup", "待跟进"], ["done", "本周完成"], ["closed", "已结束"], ["archived", "已归档"]])}
+      {user.role !== "BOSS" && chips("relation", "与我相关", [["", "全部"], ["owned", "我主责的"], ["collaborating", "我协作的"]])}
+      <div className="active-filters"><span className="muted small">当前 {tasks.length} 项</span>{params.q && <span className="chip active">搜索：{params.q} <strong>{tasks.length}</strong></span>}{params.person && <span className="chip active">{members.find(m => m.id === params.person)?.name ?? "所选成员"} <strong>{tasks.length}</strong></span>}<Link className="text-link" href={clearHref}>清除筛选</Link>{search.exception && <Link className="text-link" href={href({ exception: undefined })}>去掉异常筛选</Link>}</div>
+    </section>
+    <div className="section-heading"><h2>{archived ? "已归档事项" : "事项清单"} <span className="count">{tasks.length}</span></h2><span className="muted small">风险优先 · 到期跟进优先</span></div>
+    {tasks.length ? <div className="task-grid">{tasks.map(task => <TaskCard key={task.id} task={task} query={query} description={task.riskNote || task.latestProgress} />)}</div> : <p className="lane-empty">这个范围内还没有事项，可以调整筛选条件。</p>}
   </div>;
 }
