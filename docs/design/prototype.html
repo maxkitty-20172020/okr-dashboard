@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>运营部看板 · 页面重做方案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@600;700&family=JetBrains+Mono:wght@500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#E9EAEE;font-family:'Noto Sans SC',system-ui,-apple-system,'PingFang SC',sans-serif;color:#16181D}
+button{font:inherit}
+.bar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding:10px 20px;background:#111318;color:#F2F3F5}
+.bar strong{font-size:14px}
+.bar .grp{display:flex;gap:4px;background:#24272F;padding:3px;border-radius:9px}
+.bar button{all:unset;cursor:pointer;height:34px;padding:0 14px;border-radius:7px;font-size:13px;color:#C4C8D0;display:inline-flex;align-items:center}
+.bar button.on{background:#F2F3F5;color:#111318;font-weight:600}
+.bar .tip{font-size:12px;color:#9AA0AB}
+.phone-wrap{display:flex;justify-content:center;padding:32px 16px 64px}
+.phone{width:390px;height:844px;border-radius:36px;overflow:hidden;box-shadow:0 0 0 10px #111318,0 24px 60px rgba(0,0,0,.25);position:relative}
+.desc{max-width:1100px;margin:0 auto;padding:16px 20px 0;font-size:13px;color:#4A5160}
+
+/* ===== A 清单式 ===== */
+.A{min-height:calc(100vh - 54px);background:#F6F7F9;color:#16181D;font-size:14px;line-height:1.55}
+.A .layout{display:flex;flex-wrap:wrap;align-items:stretch;min-height:calc(100vh - 54px)}
+.A nav.side{flex:1 1 200px;max-width:232px;padding:20px 14px;border-right:1px solid #E3E6EB;background:#FBFBFC;display:flex;flex-direction:column;gap:4px}
+.A .navlink{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:8px;color:#454C59;text-decoration:none;font-size:14px}
+.A .navlink:hover{background:#ECEEF2;color:#16181D}
+.A .nav-on{background:#E3E9FB;color:#1E3FB0;font-weight:500}
+.A main{flex:999 1 560px;min-width:0;padding:28px 40px 48px;display:flex;flex-direction:column;gap:24px}
+.A .panel{background:#fff;border:1px solid #E3E6EB;border-radius:12px;overflow:hidden}
+.A .stat{background:#fff;border:1px solid #E3E6EB;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.A .stat span{font-size:12px;color:#5B6270}.A .stat strong{font-size:24px}
+.A .badge{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.A .tone-ok{background:#E6F4EC;color:#1B6340}.A .tone-risk{background:#FDECEC;color:#A8201A}.A .tone-wait{background:#EFEBFA;color:#5235A6}.A .tone-plain{background:#EDEFF2;color:#454C59}
+.A .fu{font-family:'JetBrains Mono',monospace;font-size:12px;white-space:nowrap;padding:2px 6px;border-radius:4px}
+.A .fu-today{background:#FFF1D6;color:#8A4B00}.A .fu-late{background:#FDECEC;color:#A8201A}.A .fu-plain{color:#5B6270}
+.A .row{all:unset;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;width:100%;padding:14px 16px;border-top:1px solid #E6E8EC;cursor:pointer}
+.A .row:hover{background:#F8F9FB}.A .row-on{background:#EEF3FF}.A .row:focus-visible{outline:2px solid #2F5BEA;outline-offset:-2px}
+.A .seg{all:unset;height:36px;padding:0 14px;border-radius:7px;font-size:13px;color:#454C59;cursor:pointer}
+.A .seg-on{background:#fff;color:#16181D;font-weight:500;box-shadow:0 1px 2px rgba(16,24,40,.12)}
+.A .btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 16px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.A .btn-primary{background:#2F5BEA;color:#fff}.A .btn-primary:hover{background:#244BD0}
+.A .btn-ghost{background:#fff;color:#16181D;border:1px solid #D7DBE2}.A .btn-ghost:hover{background:#F3F4F7}
+.A .btn-sm{height:32px;padding:0 10px;font-size:13px}
+.A aside{flex:1 1 340px;max-width:420px;background:#fff;border-left:1px solid #E3E6EB;padding:24px;display:flex;flex-direction:column;gap:18px}
+.A .lbl{font-size:12px;color:#5B6270}
+.A .mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:#5B6270}
+
+/* ===== B 卡片式 ===== */
+.B{position:relative;min-height:calc(100vh - 54px);background:#F3F1EC;color:#1E1B16;font-size:14px;line-height:1.6}
+.B .serif{font-family:'Noto Serif SC',serif}
+.B header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 32px;border-bottom:1px solid #E4DFD5;background:#FBFAF7}
+.B .toplink{display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;color:#5E574C;text-decoration:none;font-size:14px}
+.B .toplink:hover{background:#E8E4DB;color:#1E1B16}.B .top-on,.B .top-on:hover{background:#1E1B16;color:#FBFAF7}
+.B main{max-width:1280px;margin:0 auto;padding:32px 32px 56px;display:flex;flex-direction:column;gap:28px}
+.B .seg{all:unset;height:36px;padding:0 14px;border-radius:999px;font-size:13px;color:#5E574C;cursor:pointer}
+.B .seg-on{background:#fff;color:#1E1B16;font-weight:500;box-shadow:0 1px 2px rgba(30,27,22,.14)}
+.B .card{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;width:100%;padding:16px;background:#fff;border:1px solid #E4DFD5;border-radius:14px;cursor:pointer}
+.B .card:hover{border-color:#C9C1B2;box-shadow:0 4px 14px rgba(30,27,22,.07)}.B .card-on{border-color:#2E6B4F;box-shadow:0 0 0 1px #2E6B4F}
+.B .chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}
+.B .tone-ok{background:#E3F0E8;color:#1F5A3F}.B .tone-risk{background:#FBE6DC;color:#9A3412}.B .tone-wait{background:#ECE8F7;color:#4C3A91}.B .tone-plain{background:#EFECE6;color:#4F493F}
+.B .fu-today{background:#FCEFD2;color:#7A4A00}.B .fu-late{background:#FBE6DC;color:#9A3412}.B .fu-plain{background:#F3F1EC;color:#5E574C}
+.B .btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 18px;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.B .btn-primary{background:#2E6B4F;color:#fff}.B .btn-primary:hover{background:#255940}
+.B .btn-ghost{background:#fff;color:#1E1B16;border:1px solid #D6D0C4}.B .btn-sm{height:34px;padding:0 12px;font-size:13px}
+.B .muted{color:#5E574C}
+.B aside{position:absolute;top:0;right:0;width:440px;max-width:100%;min-height:100%;background:#FBFAF7;border-left:1px solid #E4DFD5;box-shadow:-18px 0 40px rgba(30,27,22,.10);padding:28px;display:flex;flex-direction:column;gap:18px}
+
+/* ===== C 简报式 ===== */
+.C{min-height:calc(100vh - 54px);background:#fff;color:#0F172A;font-size:15px;line-height:1.6}
+.C .num{font-family:'Space Grotesk',sans-serif}
+.C header.top{border-bottom:1px solid #E5E8EC}
+.C .wrap{max-width:1120px;margin:0 auto;padding:0 32px}
+.C .tab{display:flex;align-items:center;height:44px;color:#556070;text-decoration:none;font-size:14px;border-bottom:2px solid transparent}
+.C .tab:hover{color:#0F172A}.C .tab-on{color:#0F172A;font-weight:700;border-bottom-color:#0F172A}
+.C .seg{all:unset;height:36px;padding:0 14px;font-size:13px;color:#556070;cursor:pointer;border:1px solid #D5DAE1}
+.C .seg:first-child{border-radius:8px 0 0 8px}.C .seg:last-child{border-radius:0 8px 8px 0;border-left:none}
+.C .seg-on{background:#0F172A;color:#fff;border-color:#0F172A}
+.C .item{all:unset;box-sizing:border-box;display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:20px;align-items:baseline;width:100%;padding:18px 0;border-top:1px solid #E5E8EC;cursor:pointer}
+.C .item:hover .ttl{text-decoration:underline;text-underline-offset:3px}.C .item:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.C .when{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px}
+.C .fu-today{color:#B45309}.C .fu-late{color:#B91C1C}.C .fu-plain{color:#556070}
+.C .st{font-size:12px;font-weight:700;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.C .tone-ok{background:#E6F3F1;color:#0B5A54}.C .tone-risk{background:#FDE8E8;color:#991B1B}.C .tone-wait{background:#EEF0F6;color:#3B4A6B}.C .tone-plain{background:#F1F3F5;color:#3D4654}
+.C .btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 16px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.C .btn-primary{background:#0F766E;color:#fff}.C .btn-primary:hover{background:#0B5A54}
+.C .btn-ghost{background:#fff;color:#0F172A;border:1px solid #D5DAE1}.C .btn-sm{height:32px;padding:0 10px;font-size:13px}
+.C .muted{color:#556070}
+.C .detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px 32px;padding:4px 0 22px 140px}
+
+/* ===== F 新填写方式（B 风格） ===== */
+.F{min-height:calc(100vh - 54px);background:#F3F1EC;color:#1E1B16;font-size:14px;line-height:1.6;padding:28px 20px 64px}
+.F .serif{font-family:'Noto Serif SC',serif}
+.F .cols{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px;align-items:start}
+.F .sheet{background:#FBFAF7;border:1px solid #E4DFD5;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:18px}
+.F .q{display:flex;flex-direction:column;gap:8px}
+.F .q>span{font-weight:700;font-size:15px}
+.F .q small{font-size:12px;color:#5E574C;font-weight:400}
+.F input,.F textarea,.F select{font:inherit;width:100%;box-sizing:border-box;border:1px solid #D6D0C4;border-radius:12px;padding:11px 14px;background:#fff;color:#1E1B16;min-height:44px}
+.F textarea{resize:vertical}
+.F input:focus,.F textarea:focus,.F select:focus{outline:2px solid #2E6B4F;outline-offset:1px;border-color:#2E6B4F}
+.F .chips{display:flex;flex-wrap:wrap;gap:8px}
+.F .chip{all:unset;box-sizing:border-box;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid #D6D0C4;background:#fff;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.F .chip:hover{border-color:#9C9385}
+.F .chip.on{background:#1E1B16;border-color:#1E1B16;color:#FBFAF7}
+.F .chip.risk.on{background:#9A3412;border-color:#9A3412}
+.F .chip.done.on{background:#2E6B4F;border-color:#2E6B4F}
+.F .more{all:unset;cursor:pointer;color:#2E6B4F;font-weight:500;font-size:14px;min-height:40px;display:inline-flex;align-items:center}
+.F .btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 22px;border-radius:999px;font-size:15px;font-weight:700;cursor:pointer;background:#2E6B4F;color:#fff}
+.F .btn:hover{background:#255940}
+.F .note{font-size:13px;color:#5E574C;background:#EFECE6;border-radius:12px;padding:10px 12px}
+.F .warn{background:#FBE6DC;color:#7C2D12}
+.F .ok{background:#E3F0E8;color:#1F5A3F}
+.F table{width:100%;border-collapse:collapse;font-size:13px}
+.F td,.F th{border-top:1px solid #E4DFD5;padding:8px 6px;text-align:left;vertical-align:top}
+.F th{color:#5E574C;font-weight:500}
+@media (max-width:720px){.C .item{grid-template-columns:72px minmax(0,1fr)}.C .item .st{grid-column:2}.C .detail{padding-left:0}.A main,.B main{padding:20px 16px 40px}.B header.top{padding:12px 16px}.C .wrap{padding:0 16px}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <strong>运营部看板 · 页面重做方案</strong>
+  <div class="grp" role="group" aria-label="选择方案">
+    <button data-act="dir" data-v="A">A 清单式</button>
+    <button data-act="dir" data-v="B">B 卡片式</button>
+    <button data-act="dir" data-v="C">C 简报式</button>
+    <button data-act="dir" data-v="F">新填写方式</button>
+  </div>
+  <div class="grp" role="group" aria-label="选择设备">
+    <button data-act="device" data-v="desktop">电脑</button>
+    <button data-act="device" data-v="phone">手机</button>
+  </div>
+  <span class="tip">电脑版可点击：切换成员 / 老板视角、点开事项、点「暂无变化」。人名与事项为演示数据。</span>
+</div>
+<div id="stage"></div>
+
+<script>
+const ICON = {
+  plus: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  close: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  home: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  list: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+  cal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
+  goal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>',
+  people: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.3-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>',
+  me: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>'
+};
+const big = s => s.replace('width="16" height="16"', 'width="22" height="22"');
+
+const TASKS = [
+  { id: 't1', title: '验证核心产品主图方案', area: '业务', owner: '李明', status: '进行中', tone: 'ok', due: '10/24', follow: '今天', fu: 'today', scope: '美国站 · 厨房线', criteria: '取得测试结果，确定采用哪版主图并记录依据。', latest: '两版主图已上线，等待第一周点击数据。', next: '周五收集点击率与转化数据', risk: '', collab: [{ name: '王芳', what: '整理竞品主图对比', state: '推进中' }], log: [{ when: '10/14 16:20', who: '李明', what: '更新进展：两版主图已上线' }, { when: '10/10 11:05', who: '李明', what: '安排王芳协作' }, { when: '10/09 09:30', who: '李明', what: '创建事项' }], mine: true, helping: false },
+  { id: 't2', title: '确认旺季备货与出货排期', area: '库存', owner: '赵强', status: '受阻', tone: 'risk', due: '10/20', follow: '晚了 1 天', fu: 'late', scope: '英国站 · 收纳线', criteria: '确认销量预测、补货数量和供应商出货排期，并同步给协作人。', latest: '主供应商排期未回复，海运舱位紧张。', next: '周一前拿到备选供应商报价', risk: '需要协调备选供应商，否则 11 月中旬可能断货。', collab: [{ name: '李明', what: '提供 11–12 月销量预测', state: '待交付' }], log: [{ when: '10/15 18:02', who: '赵强', what: '标记受阻：主供应商未回复' }, { when: '10/12 10:40', who: '赵强', what: '安排李明协作' }], mine: false, helping: true, helpWhat: '提供 11–12 月销量预测' },
+  { id: 't3', title: '新人独立接手产品线', area: '团队', owner: '王芳', status: '进行中', tone: 'ok', due: '未定', follow: '10/21', fu: 'plain', scope: '欧洲站', criteria: '通过独立操作验收，并完成任务交接。', latest: '跟岗两周结束，开始独立回复客户消息。', next: '下周二做第一次独立操作验收', risk: '', collab: [], log: [{ when: '10/15 09:12', who: '王芳', what: '更新进展：跟岗结束' }], mine: false, helping: false },
+  { id: 't4', title: '整理第四季度广告预算', area: '业务', owner: '李明', status: '未开始', tone: 'plain', due: '未定', follow: '10/22', fu: 'plain', scope: '全站点', criteria: '列出各站点预算上限与分配依据，老板确认。', latest: '刚创建，还没有进展。', next: '先拉第三季度花费明细', risk: '', collab: [], log: [{ when: '10/16 09:01', who: '李明', what: '创建事项' }], mine: true, helping: false },
+  { id: 't5', title: '下架滞销 SKU 清单', area: '库存', owner: '李明', status: '等待中', tone: 'wait', due: '10/31', follow: '今天', fu: 'today', scope: '美国站', criteria: '确定下架名单并完成清货方案。', latest: '清单初稿已发给赵强核对库存数。', next: '等赵强回复后定稿', risk: '', collab: [{ name: '赵强', what: '核对剩余库存数', state: '已交付' }], log: [{ when: '10/13 15:30', who: '赵强', what: '交付：库存数已核对' }, { when: '10/11 14:00', who: '李明', what: '安排赵强协作' }], mine: true, helping: false }
+];
+
+const state = { form: { follow: '3d', more: false, mood: 'ok', area: 'biz', prio: 'n', saved: '' }, dir: 'A', device: 'desktop', view: 'member', open: 't1', reported: { t1: true, t3: true } };
+
+function model() {
+  const boss = state.view === 'boss';
+  const all = TASKS;
+  const late = t => t.fu === 'today' || t.fu === 'late';
+  const sec = (title, hint, items, line) => ({ title, hint, items: items.map(t => ({ t, line: line ? line(t) : t.latest })) });
+  let sections, scope, stats, headline, lede;
+  if (boss) {
+    const attention = all.filter(t => t.tone === 'risk');
+    const today = all.filter(late);
+    sections = [
+      sec('需要你出面', '受阻或有风险，主责写了需要的支持', attention, t => t.risk),
+      sec('今天该有回音', '按跟进日期，晚了的排前面', today),
+      sec('还没定期限', '照常推进，必要时请主责补期限', all.filter(t => t.due === '未定'))
+    ];
+    scope = all;
+    stats = [['在推进的事', all.length, '#0F172A'], ['受阻 / 有风险', attention.length, '#B91C1C'], ['今天该有回音', today.length, '#B45309'], ['本周进展已写', all.filter(t => state.reported[t.id]).length + ' / ' + all.length, '#0F766E']];
+    headline = '5 件事在推进，1 件卡住了，需要你出面。';
+    lede = '赵强的旺季备货在等供应商回复，已晚 1 天；他需要你协调备选供应商。其余事项按计划推进。';
+  } else {
+    const mine = all.filter(t => t.mine);
+    const today = mine.filter(late);
+    const helping = all.filter(t => t.helping);
+    sections = [
+      sec('今天要跟进', '我主责 · 跟进日是今天或已过', today, t => '下一步：' + t.next),
+      sec('等我交付', '别人安排给我的协作', helping, t => '我要交：' + t.helpWhat),
+      sec('我负责 · 还没定期限', '照常推进，也会出现在本周进展里', mine.filter(t => t.due === '未定'))
+    ];
+    scope = mine;
+    stats = [['我负责的事', mine.length, '#0F172A'], ['今天要跟进', today.length, '#B45309'], ['等我交付', helping.length, '#B91C1C'], ['本周进展已写', mine.filter(t => state.reported[t.id]).length + ' / ' + mine.length, '#0F766E']];
+    headline = '今天有 2 件事要跟进，赵强在等你的销量预测。';
+    lede = '他的旺季备货已经受阻，你的预测是他重新排期的依据，建议先交。';
+  }
+  const pending = scope.filter(t => !state.reported[t.id]);
+  const people = ['李明', '王芳', '赵强'].map(name => {
+    const own = all.filter(t => t.owner === name);
+    const risky = own.some(t => t.tone === 'risk');
+    return { name, own: own.length, help: all.filter(t => t.collab.some(c => c.name === name)).length, risky };
+  });
+  return { boss, sections, scope, stats, pending, done: scope.length - pending.length, total: scope.length, people, headline, lede, open: all.find(t => t.id === state.open) };
+}
+
+const canWrite = (m, t) => !m.boss && t && t.mine;
+const collabHtml = (t, cls) => t.collab.length ? t.collab.map(c => `<div class="${cls}"><span>${c.name} · ${c.what}</span><span style="opacity:.75;white-space:nowrap">${c.state}</span></div>`).join('') : '<span style="font-size:13px;opacity:.7">没有安排协作。</span>';
+
+/* ---------- A ---------- */
+function renderA(m) {
+  const d = m.open;
+  const row = (it) => `<button type="button" class="row ${state.open === it.t.id ? 'row-on' : ''}" data-act="open" data-v="${it.t.id}">
+      <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <span style="font-weight:500">${it.t.title}</span>
+        <span style="font-size:12px;color:#5B6270">${it.t.area} · 主责 ${it.t.owner}${it.t.scope ? ' · ' + it.t.scope : ''}</span>
+        <span style="font-size:13px;color:#2F343D">${it.line}</span>
+      </span>
+      <span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <span class="badge tone-${it.t.tone}">${it.t.status}</span>
+        <span class="fu fu-${it.t.fu}">跟进 ${it.t.follow}</span>
+      </span></button>`;
+  return `<div class="A"><div class="layout">
+    <nav class="side" aria-label="主导航">
+      <div style="padding:4px 12px 18px;display:flex;flex-direction:column;gap:2px"><strong style="font-size:15px">运营部</strong><span style="font-size:12px;color:#5B6270">任务与进展</span></div>
+      <a class="navlink nav-on" href="#">${ICON.home}工作台</a>
+      <a class="navlink" href="#">${ICON.list}全部事项</a>
+      <a class="navlink" href="#">${ICON.cal}每周进展</a>
+      <a class="navlink" href="#">${ICON.goal}目标</a>
+      <a class="navlink" href="#">${ICON.people}成员</a>
+      <div style="flex-grow:1"></div>
+      <div style="padding:12px;border-top:1px solid #E3E6EB;display:flex;flex-direction:column"><span style="font-weight:500">${m.boss ? '陈总' : '李明'}</span><span style="font-size:12px;color:#5B6270">${m.boss ? '老板 · 只看不改' : '填报成员'}</span></div>
+    </nav>
+    <main>
+      <header style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6270">10 月 16 日 周五 · 第 42 周</span><h1 style="margin:0;font-size:24px">${m.boss ? '部门这周的情况' : '你好，李明'}</h1></div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <div role="group" aria-label="切换视角" style="display:flex;gap:2px;padding:3px;background:#E9ECF0;border-radius:9px">
+            <button type="button" class="seg ${m.boss ? '' : 'seg-on'}" data-act="view" data-v="member">成员视角</button>
+            <button type="button" class="seg ${m.boss ? 'seg-on' : ''}" data-act="view" data-v="boss">老板视角</button>
+          </div>
+          ${m.boss ? '' : `<button type="button" class="btn btn-primary">${ICON.plus}记一件事</button>`}
+        </div>
+      </header>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">${m.stats.map(s => `<div class="stat"><span>${s[0]}</span><strong>${s[1]}</strong></div>`).join('')}</div>
+      ${m.sections.map(sec => `<section class="panel">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 16px 10px"><h2 style="margin:0;font-size:15px">${sec.title} <span style="color:#5B6270;font-weight:400">${sec.items.length}</span></h2><span style="font-size:12px;color:#5B6270">${sec.hint}</span></div>
+        ${sec.items.length ? sec.items.map(row).join('') : '<p style="margin:0;padding:14px 16px;border-top:1px solid #E6E8EC;color:#5B6270">这里没有事项。</p>'}
+      </section>`).join('')}
+      <section class="panel" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px"><h2 style="margin:0;font-size:15px">本周进展 <span style="color:#5B6270;font-weight:400">已写 ${m.done} / ${m.total}</span></h2><span style="font-size:12px;color:#5B6270">周五下班前写完。没变化就点「暂无变化」，也算写过。</span></div>
+        <div style="height:8px;background:#EDEFF2;border-radius:4px;overflow:hidden"><div style="height:8px;background:#2F5BEA;width:${Math.round(m.done / m.total * 100)}%"></div></div>
+        ${m.pending.map(t => `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding-top:10px;border-top:1px solid #EEF0F3">
+          <span>${t.title} <span style="color:#5B6270;font-size:12px">· ${t.owner}</span></span>
+          ${m.boss ? '<span class="badge tone-plain">还没写</span>' : `<span style="display:flex;gap:8px"><button type="button" class="btn btn-ghost btn-sm" data-act="quick" data-v="${t.id}">暂无变化</button><button type="button" class="btn btn-primary btn-sm" data-act="open" data-v="${t.id}">写进展</button></span>`}
+        </div>`).join('')}
+        ${m.pending.length ? '' : '<p style="margin:0;color:#1B6340">这周的进展都写完了。</p>'}
+      </section>
+    </main>
+    ${d ? `<aside aria-label="事项详情">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">${d.area} · 主责 ${d.owner} · ${d.scope}</span><h2 style="margin:0;font-size:18px">${d.title}</h2>
+          <span style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge tone-${d.tone}">${d.status}</span><span class="badge tone-plain">期限 ${d.due}</span></span></div>
+        <button type="button" class="btn btn-ghost btn-sm" aria-label="关闭详情" data-act="close">${ICON.close}</button>
+      </div>
+      ${d.risk ? `<div style="background:#FDECEC;color:#7A1712;border-radius:8px;padding:10px 12px;font-size:13px"><strong>卡住了：</strong>${d.risk}</div>` : ''}
+      <div><div class="lbl">做到什么算完成</div>${d.criteria}</div>
+      <div><div class="lbl">最新进展</div>${d.latest}</div>
+      <div><div class="lbl">下一步 · 跟进 ${d.follow}</div>${d.next}</div>
+      <div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">协作</span>${collabHtml(d, 'collabA')}</div>
+      ${canWrite(m, d) ? `<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-primary">更新进展</button><button type="button" class="btn btn-ghost" data-act="quick" data-v="${d.id}">暂无变化</button></div>` : ''}
+      ${m.boss ? '<span class="badge tone-plain" style="align-self:flex-start">老板账号 · 只看不改</span>' : ''}
+      <div style="display:flex;flex-direction:column;gap:10px;border-top:1px solid #EEF0F3;padding-top:14px"><span class="lbl">动态</span>
+        ${d.log.map(l => `<div style="display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;font-size:13px"><span class="mono">${l.when}</span><span><strong style="font-weight:500">${l.who}</strong> ${l.what}</span></div>`).join('')}
+      </div>
+    </aside>` : ''}
+  </div></div>`;
+}
+
+/* ---------- B ---------- */
+function renderB(m) {
+  const d = m.open;
+  const card = (it) => `<button type="button" class="card ${state.open === it.t.id ? 'card-on' : ''}" data-act="open" data-v="${it.t.id}">
+      <span style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip tone-${it.t.tone}">${it.t.status}</span><span class="chip fu-${it.t.fu}">跟进 ${it.t.follow}</span></span>
+      <span style="font-weight:700;font-size:15px">${it.t.title}</span>
+      <span style="font-size:13px;color:#3E3930">${it.line}</span>
+      <span style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#5E574C;border-top:1px dashed #E4DFD5;padding-top:8px"><span>${it.t.area} · ${it.t.owner}</span><span>期限 ${it.t.due}</span></span>
+    </button>`;
+  return `<div class="B">
+    <header class="top">
+      <div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="width:28px;height:28px;border-radius:8px;background:#2E6B4F;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700">运</span><strong class="serif" style="font-size:16px">运营部看板</strong></div>
+      <nav aria-label="主导航" style="display:flex;flex-wrap:wrap;gap:4px"><a class="toplink top-on" href="#">工作台</a><a class="toplink" href="#">全部事项</a><a class="toplink" href="#">每周进展</a><a class="toplink" href="#">目标</a><a class="toplink" href="#">成员</a></nav>
+      <span class="muted" style="font-size:13px">${m.boss ? '陈总 · 只看不改' : '李明 · 填报成员'}</span>
+    </header>
+    <main>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between">
+        <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">10 月 16 日 周五 · 第 42 周</span><h1 class="serif" style="margin:0;font-size:30px">${m.boss ? '部门这周的情况' : '你好，李明'}</h1><span class="muted">${m.boss ? '先看卡住的事，再看今天该有回音的。' : '先处理今天要跟进的，再交别人等你的。'}</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <div role="group" aria-label="切换视角" style="display:flex;gap:2px;padding:3px;background:#E8E4DB;border-radius:999px">
+            <button type="button" class="seg ${m.boss ? '' : 'seg-on'}" data-act="view" data-v="member">成员视角</button>
+            <button type="button" class="seg ${m.boss ? 'seg-on' : ''}" data-act="view" data-v="boss">老板视角</button>
+          </div>
+          ${m.boss ? '' : `<button type="button" class="btn btn-primary">${ICON.plus}记一件事</button>`}
+        </div>
+      </div>
+      <section aria-label="本周进展" style="background:#1E1B16;color:#FBFAF7;border-radius:18px;padding:20px 24px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:220px"><span style="font-size:13px;color:#CFC8BA">本周进展</span><strong class="serif" style="font-size:26px">已写 ${m.done} / ${m.total}</strong><span style="font-size:13px;color:#CFC8BA">没变化点「暂无变化」也算写过</span></div>
+        <div style="flex:1 1 420px;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end">
+          ${m.pending.map(t => `<div style="display:flex;align-items:center;gap:8px;background:#2C2822;border-radius:999px;padding:4px 4px 4px 14px"><span style="font-size:13px">${t.title}</span>${m.boss ? `<span style="font-size:12px;color:#CFC8BA;padding-right:10px">${t.owner} 还没写</span>` : `<button type="button" class="btn btn-sm" style="background:#FBFAF7;color:#1E1B16" data-act="quick" data-v="${t.id}">暂无变化</button>`}</div>`).join('')}
+          ${m.pending.length ? '' : '<span style="color:#A8D5BC">这周都写完了</span>'}
+        </div>
+      </section>
+      ${m.boss ? `<section aria-label="成员手上的事" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">${m.people.map(p => `<div style="background:#fff;border:1px solid #E4DFD5;border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="width:34px;height:34px;border-radius:999px;background:#E3F0E8;color:#1F5A3F;display:inline-flex;align-items:center;justify-content:center;font-weight:700">${p.name.slice(-1)}</span><div style="display:flex;flex-direction:column"><strong style="font-weight:500">${p.name}</strong><span class="muted" style="font-size:12px">主责 ${p.own} · 协作 ${p.help}</span></div></div>
+          <span class="chip ${p.risky ? 'tone-risk' : 'tone-ok'}">${p.risky ? '有事卡住' : '正常'}</span></div>`).join('')}</section>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start">
+        ${m.sections.map(sec => `<section style="display:flex;flex-direction:column;gap:12px">
+          <h2 class="serif" style="margin:0;padding:0 4px;font-size:18px">${sec.title} <span style="font-family:'Noto Sans SC',sans-serif;font-size:14px;color:#5E574C;font-weight:400">${sec.items.length}</span></h2>
+          <span class="muted" style="font-size:12px;padding:0 4px">${sec.hint}</span>
+          ${sec.items.length ? sec.items.map(card).join('') : '<div style="border:1px dashed #D6D0C4;border-radius:14px;padding:18px;color:#5E574C;font-size:13px">这里没有事项。</div>'}
+        </section>`).join('')}
+      </div>
+    </main>
+    ${d ? `<aside aria-label="事项详情">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><span style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip tone-${d.tone}">${d.status}</span><span class="chip tone-plain">期限 ${d.due}</span></span><button type="button" class="btn btn-ghost btn-sm" aria-label="关闭详情" data-act="close">${ICON.close}</button></div>
+      <div><h2 class="serif" style="margin:0;font-size:22px">${d.title}</h2><span class="muted" style="font-size:13px">${d.area} · 主责 ${d.owner} · ${d.scope}</span></div>
+      ${d.risk ? `<div style="background:#FBE6DC;color:#7C2D12;border-radius:12px;padding:12px 14px;font-size:13px"><strong>需要支持：</strong>${d.risk}</div>` : ''}
+      <div style="background:#fff;border:1px solid #E4DFD5;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+        <div><div class="muted" style="font-size:12px">做到什么算完成</div>${d.criteria}</div>
+        <div><div class="muted" style="font-size:12px">最新进展</div>${d.latest}</div>
+        <div><div class="muted" style="font-size:12px">下一步 · 跟进 ${d.follow}</div>${d.next}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px"><span class="muted" style="font-size:12px">协作</span>${collabHtml(d, 'collabB')}</div>
+      ${canWrite(m, d) ? `<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-primary">更新进展</button><button type="button" class="btn btn-ghost" data-act="quick" data-v="${d.id}">暂无变化</button></div>` : ''}
+      <div style="display:flex;flex-direction:column;gap:12px"><span class="muted" style="font-size:12px">动态</span>
+        ${d.log.map(l => `<div style="display:flex;gap:12px;font-size:13px"><span aria-hidden="true" style="width:8px;height:8px;margin-top:7px;border-radius:999px;background:#2E6B4F;flex-shrink:0"></span><span><strong style="font-weight:500">${l.who}</strong> ${l.what}<br><span class="muted" style="font-size:12px">${l.when}</span></span></div>`).join('')}
+      </div>
+    </aside>` : ''}
+  </div>`;
+}
+
+/* ---------- C ---------- */
+function renderC(m) {
+  const item = (it) => {
+    const t = it.t, on = state.open === t.id;
+    return `<div><button type="button" class="item" data-act="toggle" data-v="${t.id}" aria-expanded="${on}">
+        <span class="when fu-${t.fu}">${t.follow}</span>
+        <span style="display:flex;flex-direction:column;gap:4px;min-width:0"><span class="ttl" style="font-weight:700;font-size:17px">${t.title}</span><span style="color:#3D4654;font-size:14px">${it.line}</span><span class="muted" style="font-size:13px">${t.owner} 主责 · ${t.area} · 期限 ${t.due}</span></span>
+        <span class="st tone-${t.tone}">${t.status}</span></button>
+      ${on ? `<div class="detail">
+        <div><div class="muted" style="font-size:12px">做到什么算完成</div><span style="font-size:14px">${t.criteria}</span></div>
+        <div><div class="muted" style="font-size:12px">下一步</div><span style="font-size:14px">${t.next}</span></div>
+        <div><div class="muted" style="font-size:12px">协作</div><span style="font-size:14px">${t.collab.length ? t.collab.map(c => c.name + '：' + c.what + '（' + c.state + '）').join('；') : '没有安排协作'}</span></div>
+        <div><div class="muted" style="font-size:12px">最近动态</div><span style="font-size:14px">${t.log[0].when} ${t.log[0].who} ${t.log[0].what}</span></div>
+        ${canWrite(m, t) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="btn btn-primary btn-sm">更新进展</button><button type="button" class="btn btn-ghost btn-sm" data-act="quick" data-v="${t.id}">暂无变化</button></div>` : ''}
+      </div>` : ''}</div>`;
+  };
+  return `<div class="C">
+    <header class="top"><div class="wrap" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 24px">
+      <strong style="font-weight:900;letter-spacing:.04em;padding:10px 0">运营部 · 简报</strong>
+      <nav aria-label="主导航" style="display:flex;flex-wrap:wrap;gap:24px"><a class="tab tab-on" href="#">工作台</a><a class="tab" href="#">全部事项</a><a class="tab" href="#">每周进展</a><a class="tab" href="#">目标</a><a class="tab" href="#">成员</a></nav>
+      <div role="group" aria-label="切换视角" style="display:flex;padding:6px 0"><button type="button" class="seg ${m.boss ? '' : 'seg-on'}" data-act="view" data-v="member">李明</button><button type="button" class="seg ${m.boss ? 'seg-on' : ''}" data-act="view" data-v="boss">陈总</button></div>
+    </div></header>
+    <main class="wrap" style="padding-top:40px;padding-bottom:64px;display:flex;flex-direction:column;gap:40px">
+      <section style="display:flex;flex-direction:column;gap:16px">
+        <span class="num muted" style="font-weight:700;font-size:13px;letter-spacing:.06em">FRI 16 OCT · 第 42 周</span>
+        <h1 style="margin:0;font-size:36px;line-height:1.3;font-weight:900;max-width:860px">${m.headline}</h1>
+        <p style="margin:0;color:#3D4654;max-width:760px">${m.lede}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:32px;padding-top:8px">${m.stats.map(s => `<div style="display:flex;flex-direction:column"><strong class="num" style="font-size:34px;line-height:1.1;color:${s[2]}">${String(s[1]).replace(/ /g, '')}</strong><span class="muted" style="font-size:13px">${s[0]}</span></div>`).join('')}</div>
+        ${m.boss ? '' : `<div><button type="button" class="btn btn-primary">${ICON.plus}记一件事</button></div>`}
+      </section>
+      ${m.sections.map(sec => `<section>
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;padding-bottom:10px"><h2 style="margin:0;font-size:20px;font-weight:900">${sec.title} <span class="num muted" style="font-weight:500">${sec.items.length}</span></h2><span class="muted" style="font-size:13px">${sec.hint}</span></div>
+        ${sec.items.length ? sec.items.map(item).join('') : '<p class="muted" style="margin:0;padding:18px 0;border-top:1px solid #E5E8EC">这里没有事项。</p>'}
+      </section>`).join('')}
+      <section aria-label="本周进展" style="border-top:3px solid #0F172A;padding-top:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px"><h2 style="margin:0;font-size:20px;font-weight:900">本周进展 <span class="num muted" style="font-weight:500">${m.done}/${m.total}</span></h2><span class="muted" style="font-size:13px">没变化点「暂无变化」也算写过</span></div>
+        ${m.pending.map(t => `<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #E5E8EC"><span>${t.title} <span class="muted" style="font-size:13px">· ${t.owner} 还没写</span></span>${m.boss ? '' : `<button type="button" class="btn btn-ghost btn-sm" data-act="quick" data-v="${t.id}">暂无变化</button>`}</div>`).join('')}
+        ${m.pending.length ? '' : '<p style="margin:0;color:#0B5A54;font-weight:700">这周都写完了。</p>'}
+      </section>
+    </main>
+  </div>`;
+}
+
+/* ---------- 手机（静态示意，成员视角） ---------- */
+const PHONE = {
+  A: () => `<div style="height:100%;background:#F6F7F9;color:#16181D;font-size:14px;line-height:1.5;display:flex;flex-direction:column">
+    <header style="padding:44px 16px 12px;background:#fff;border-bottom:1px solid #E3E6EB;display:flex;justify-content:space-between;align-items:flex-end">
+      <div><span style="font-size:12px;color:#5B6270">10 月 16 日 周五 · 第 42 周</span><br><strong style="font-size:20px">你好，李明</strong></div>
+      <button type="button" aria-label="记一件事" style="all:unset;width:44px;height:44px;border-radius:12px;background:#2F5BEA;color:#fff;display:inline-flex;align-items:center;justify-content:center">${big(ICON.plus)}</button>
+    </header>
+    <div style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+        ${[['今天跟进', '2'], ['等我交付', '1'], ['本周已写', '1/3']].map(s => `<div style="background:#fff;border:1px solid #E3E6EB;border-radius:10px;padding:10px"><span style="font-size:11px;color:#5B6270">${s[0]}</span><br><strong style="font-size:20px">${s[1]}</strong></div>`).join('')}
+      </div>
+      <section style="background:#fff;border:1px solid #E3E6EB;border-radius:12px;overflow:hidden"><h2 style="margin:0;padding:12px 16px 8px;font-size:14px">今天要跟进 <span style="color:#5B6270;font-weight:400">2</span></h2>
+        ${[['验证核心产品主图方案', '进行中', '#E6F4EC', '#1B6340', '下一步：周五收集点击率与转化数据'], ['下架滞销 SKU 清单', '等待中', '#EFEBFA', '#5235A6', '下一步：等赵强回复后定稿']].map(r => `<div style="padding:12px 16px;border-top:1px solid #E6E8EC;display:flex;flex-direction:column;gap:4px"><span style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:500">${r[0]}</strong><span style="background:${r[2]};color:${r[3]};font-size:12px;padding:1px 7px;border-radius:6px">${r[1]}</span></span><span style="font-size:13px">${r[4]}</span><span style="font-size:12px;color:#8A4B00;font-family:'JetBrains Mono',monospace">跟进 今天</span></div>`).join('')}
+      </section>
+      <section style="background:#fff;border:1px solid #E3E6EB;border-radius:12px;overflow:hidden"><h2 style="margin:0;padding:12px 16px 8px;font-size:14px">等我交付 <span style="color:#5B6270;font-weight:400">1</span></h2>
+        <div style="padding:12px 16px;border-top:1px solid #E6E8EC;display:flex;flex-direction:column;gap:4px"><span style="display:flex;justify-content:space-between;gap:8px"><strong style="font-weight:500">确认旺季备货与出货排期</strong><span style="background:#FDECEC;color:#A8201A;font-size:12px;padding:1px 7px;border-radius:6px">受阻</span></span><span style="font-size:13px">我要交：提供 11–12 月销量预测</span><span style="font-size:12px;color:#5B6270">赵强主责</span></div>
+      </section>
+      <section style="background:#fff;border:1px solid #E3E6EB;border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:14px">本周进展 <span style="color:#5B6270;font-weight:400">已写 1 / 3</span></h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>整理第四季度广告预算</span><button type="button" style="all:unset;height:36px;padding:0 12px;border:1px solid #D7DBE2;border-radius:8px;font-size:13px">暂无变化</button></div>
+      </section>
+    </div>
+    <nav aria-label="主导航" style="display:flex;background:#fff;border-top:1px solid #E3E6EB;padding:4px 4px 22px">
+      ${[['home', '工作台', 1], ['list', '事项'], ['cal', '每周进展'], ['me', '我的']].map(n => `<a href="#" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;justify-content:center;font-size:11px;text-decoration:none;color:${n[2] ? '#2F5BEA' : '#5B6270'};font-weight:${n[2] ? 500 : 400}">${n[0] === 'me' ? ICON.me : big(ICON[n[0]])}${n[1]}</a>`).join('')}
+    </nav></div>`,
+  B: () => `<div style="height:100%;background:#F3F1EC;color:#1E1B16;font-size:14px;line-height:1.55;display:flex;flex-direction:column">
+    <header style="padding:48px 16px 12px"><span style="font-size:12px;color:#5E574C">10 月 16 日 周五 · 第 42 周</span><br><strong style="font-family:'Noto Serif SC',serif;font-size:24px">你好，李明</strong></header>
+    <div style="flex:1;overflow:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:14px">
+      <section style="background:#1E1B16;color:#FBFAF7;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;color:#CFC8BA">本周进展</span><strong style="font-family:'Noto Serif SC',serif;font-size:20px">已写 1 / 3</strong></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:#2C2822;border-radius:999px;padding:4px 4px 4px 14px"><span style="font-size:13px">整理第四季度广告预算</span><button type="button" style="all:unset;height:36px;padding:0 14px;border-radius:999px;background:#FBFAF7;color:#1E1B16;font-size:13px">暂无变化</button></div>
+      </section>
+      <div style="display:flex;gap:6px">${[['今天跟进 2', 1], ['等我交付 1'], ['没定期限 1']].map(p => `<button type="button" style="all:unset;height:36px;padding:0 14px;border-radius:999px;font-size:13px;white-space:nowrap;background:${p[1] ? '#1E1B16' : '#E8E4DB'};color:${p[1] ? '#FBFAF7' : '#5E574C'}">${p[0]}</button>`).join('')}</div>
+      ${[['验证核心产品主图方案', '进行中', '#E3F0E8', '#1F5A3F', '下一步：周五收集点击率与转化数据', '业务 · 李明', '10/24'], ['下架滞销 SKU 清单', '等待中', '#ECE8F7', '#4C3A91', '下一步：等赵强回复后定稿', '库存 · 李明', '10/31']].map(c => `<a href="#" style="display:flex;flex-direction:column;gap:8px;padding:14px;background:#fff;border:1px solid #E4DFD5;border-radius:14px;text-decoration:none;color:#1E1B16">
+        <span style="display:flex;gap:6px"><span style="background:${c[2]};color:${c[3]};font-size:12px;padding:1px 8px;border-radius:999px">${c[1]}</span><span style="background:#FCEFD2;color:#7A4A00;font-size:12px;padding:1px 8px;border-radius:999px">跟进 今天</span></span>
+        <strong style="font-size:15px">${c[0]}</strong><span style="font-size:13px;color:#3E3930">${c[4]}</span>
+        <span style="display:flex;justify-content:space-between;font-size:12px;color:#5E574C;border-top:1px dashed #E4DFD5;padding-top:8px"><span>${c[5]}</span><span>期限 ${c[6]}</span></span></a>`).join('')}
+    </div>
+    <nav aria-label="主导航" style="display:flex;background:#FBFAF7;border-top:1px solid #E4DFD5;padding:4px 4px 22px">
+      ${[['home', '工作台', 1], ['list', '事项'], ['plus', ''], ['cal', '每周进展'], ['me', '我的']].map(n => n[0] === 'plus' ? `<a href="#" aria-label="记一件事" style="flex:1;display:flex;justify-content:center"><span style="width:48px;height:48px;margin-top:-20px;border-radius:999px;background:#2E6B4F;color:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(46,107,79,.35)">${big(ICON.plus)}</span></a>` : `<a href="#" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;justify-content:center;font-size:11px;text-decoration:none;color:${n[2] ? '#2E6B4F' : '#5E574C'};font-weight:${n[2] ? 700 : 400}">${n[0] === 'me' ? ICON.me : big(ICON[n[0]])}${n[1]}</a>`).join('')}
+    </nav></div>`,
+  C: () => `<div style="height:100%;background:#fff;color:#0F172A;font-size:15px;line-height:1.55;display:flex;flex-direction:column">
+    <div style="flex:1;overflow:auto;padding:52px 20px 12px;display:flex;flex-direction:column;gap:22px">
+      <section style="display:flex;flex-direction:column;gap:10px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#556070;letter-spacing:.06em">FRI 16 OCT · 第 42 周</span>
+        <h1 style="margin:0;font-size:25px;line-height:1.35;font-weight:900">今天有 2 件事要跟进，赵强在等你的销量预测。</h1>
+        <div style="display:flex;gap:22px">${[['2', '今天跟进', '#B45309'], ['1', '等我交付', '#B91C1C'], ['1/3', '本周已写', '#0F766E']].map(s => `<div><strong style="font-family:'Space Grotesk',sans-serif;font-size:26px;color:${s[2]}">${s[0]}</strong><br><span style="font-size:12px;color:#556070">${s[1]}</span></div>`).join('')}</div>
+      </section>
+      ${[['今天要跟进', [['今天', '#B45309', '验证核心产品主图方案', '下一步：周五收集点击率与转化数据'], ['今天', '#B45309', '下架滞销 SKU 清单', '下一步：等赵强回复后定稿']]], ['等我交付', [['晚 1 天', '#B91C1C', '确认旺季备货与出货排期', '我要交：提供 11–12 月销量预测']]]].map(sec => `<section><h2 style="margin:0 0 8px;font-size:17px;font-weight:900">${sec[0]}</h2>
+        ${sec[1].map(i => `<a href="#" style="display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:14px 0;border-top:1px solid #E5E8EC;text-decoration:none;color:#0F172A"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:${i[1]}">${i[0]}</span><span style="display:flex;flex-direction:column;gap:2px"><strong style="font-size:15px">${i[2]}</strong><span style="font-size:13px;color:#3D4654">${i[3]}</span></span></a>`).join('')}</section>`).join('')}
+      <button type="button" style="all:unset;height:48px;border-radius:10px;background:#0F766E;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">${ICON.plus}记一件事</button>
+    </div>
+    <nav aria-label="主导航" style="display:flex;border-top:1px solid #E5E8EC;padding-bottom:22px">
+      ${[['工作台', 1], ['事项'], ['每周进展'], ['我的']].map(n => `<a href="#" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:52px;font-size:13px;text-decoration:none;color:${n[1] ? '#0F172A' : '#556070'};font-weight:${n[1] ? 700 : 400};border-top:2px solid ${n[1] ? '#0F172A' : 'transparent'}">${n[0]}</a>`).join('')}
+    </nav></div>`
+};
+
+
+/* ---------- F 新填写方式 ---------- */
+function renderF() {
+  const f = state.form;
+  const chip = (group, v, label, extra) => `<button type="button" class="chip ${extra || ''} ${f[group] === v ? 'on' : ''}" data-act="form" data-g="${group}" data-v="${v}">${label}</button>`;
+  const follow = `<div class="q"><span>什么时候再看一眼？ <small>到这天会提醒你</small></span><div class="chips">${chip('follow', '1d', '明天')}${chip('follow', '3d', '3 天后')}${chip('follow', 'mon', '下周一')}${chip('follow', 'pick', '选日期…')}</div>${f.follow === 'pick' ? '<input type="date" aria-label="选择跟进日期">' : ''}</div>`;
+  const moods = { ok: '顺利推进', wait: '在等别人', stuck: '卡住了', done: '做完了', same: '没变化' };
+  const m = f.mood;
+  const update = m === 'same'
+    ? `<div class="note">只确认一下“情况没变”，不改已有进展，也算写过本周进展。</div>${follow}<button type="button" class="btn" data-act="form-save" data-v="已确认暂无变化，本周进展已记录。">确认暂无变化</button>`
+    : `<label class="q"><span>${m === 'done' ? '最后结果是什么？' : '这次有什么新进展？'} <small>写已经发生的事，一两句就够</small></span><textarea rows="3" placeholder="${m === 'done' ? '例：定了 B 版主图，点击率比 A 版高 18%，已全量替换' : '例：两版主图第一周数据出来了，B 版点击率更高'}"></textarea></label>
+       ${m === 'stuck' ? '<label class="q"><span>卡在哪？需要谁帮什么？ <small>必填，老板会第一眼看到</small></span><textarea rows="2" placeholder="例：供应商一直没回复排期，需要老板帮忙联系备选供应商"></textarea></label>' : ''}
+       ${m === 'wait' ? '<label class="q"><span>在等谁、等什么？</span><input placeholder="例：等赵强核对库存数"></label>' : ''}
+       ${m === 'done' ? '' : `<label class="q"><span>下一步做什么？ <small>已带出上次写的，改一下就行</small></span><input value="周五收集点击率与转化数据"></label>${follow}`}
+       <button type="button" class="btn" data-act="form-save" data-v="${m === 'done' ? '已标记完成，本周进展已记录。' : '进展已保存，本周进展已记录。'}">保存</button>`;
+  return `<div class="F"><div class="cols">
+    <section class="sheet" aria-label="记一件事">
+      <div><h2 class="serif" style="margin:0;font-size:22px">记一件事</h2><span style="color:#5E574C;font-size:13px">只要回答 3 个问题，30 秒记下来。其他的以后再补。</span></div>
+      <label class="q"><span>1. 这件事是什么？</span><input placeholder="例：确认旺季备货与出货排期"></label>
+      <label class="q"><span>2. 做到什么算完成？ <small>别人看了知道什么时候算交差</small></span><textarea rows="2" placeholder="例：拿到供应商排期，定下 11 月补货数量"></textarea></label>
+      <label class="q"><span>3. 谁负责？</span><select><option>我（李明）</option><option>王芳</option><option>赵强</option></select></label>
+      ${follow}
+      <button type="button" class="more" data-act="form-more" aria-expanded="${f.more}">${f.more ? '收起更多设置' : '＋ 更多设置（选填：领域、期限、关联目标、重要程度）'}</button>
+      ${f.more ? `<div style="display:flex;flex-direction:column;gap:14px;padding:14px;border:1px dashed #D6D0C4;border-radius:14px">
+        <div class="q"><span>属于哪块？</span><div class="chips">${chip('area', 'biz', '业务')}${chip('area', 'team', '团队')}${chip('area', 'inv', '库存')}${chip('area', 'other', '其他')}</div></div>
+        <label class="q"><span>最晚什么时候完成？ <small>还不确定就空着</small></span><input type="date"></label>
+        <label class="q"><span>为哪个目标做的？ <small>不选也行</small></span><select><option>不关联</option><option>改善核心产品运营效率</option></select></label>
+        <div class="q"><span>重要程度</span><div class="chips">${chip('prio', 'n', '一般')}${chip('prio', 'h', '重要')}</div></div>
+      </div>` : ''}
+      <button type="button" class="btn" data-act="form-save" data-v="已记下。下一步默认为「明确推进计划」，3 天后提醒你看一眼。">记下来</button>
+    </section>
+
+    <section class="sheet" aria-label="更新进展">
+      <div><h2 class="serif" style="margin:0;font-size:22px">更新进展</h2><span style="color:#5E574C;font-size:13px">验证核心产品主图方案 · 上次：两版主图已上线，等待第一周点击数据</span></div>
+      <div class="q"><span>现在怎么样？</span><div class="chips">${chip('mood', 'ok', '顺利推进')}${chip('mood', 'wait', '在等别人')}${chip('mood', 'stuck', '卡住了', 'risk')}${chip('mood', 'done', '做完了', 'done')}${chip('mood', 'same', '没变化')}</div></div>
+      ${update}
+      <div class="note ok">这次更新会自动算作本周进展，不用再去“每周进展”写一遍。</div>
+    </section>
+
+    <section class="sheet" aria-label="新旧对比" style="grid-column:1/-1">
+      <h2 class="serif" style="margin:0;font-size:20px">和现在比，改了什么</h2>
+      <table>
+        <tr><th style="width:22%">环节</th><th style="width:39%">现在</th><th>新方式</th></tr>
+        <tr><td>新建事项</td><td>11 项，6 项必填（名称、完成标准、主负责人、领域、类型、下一步、跟进日期…）</td><td>3 个问题 + 一键选跟进日；其余收进“更多设置”，有默认值</td></tr>
+        <tr><td>任务类型（短期 / 长期）</td><td>必选</td><td>不用选：有期限就是短期，没期限就是长期</td></tr>
+        <tr><td>更新进展</td><td>两个下拉框（任务状态 6 选 1 + 风险情况 2 选 1）+ 4 个输入框</td><td>先点一个“现在怎么样”，只出现需要填的框</td></tr>
+        <tr><td>跟进日期</td><td>每次都要用日期选择器选</td><td>点“明天 / 3 天后 / 下周一”</td></tr>
+        <tr><td>下一步动作</td><td>每次重写</td><td>自动带出上次的，改一下就行</td></tr>
+        <tr><td>周汇报</td><td>任务进展写完，还要去“周期汇报”再写一遍</td><td>本周更新过进展就自动算写过；没变化一键确认</td></tr>
+        <tr><td>填写指南</td><td>单独一个页面</td><td>每个问题下面直接给例子</td></tr>
+      </table>
+      <p style="margin:0;font-size:13px;color:#5E574C">“现在怎么样”与系统状态的对应：顺利推进 = 进行中 · 按计划；在等别人 = 等待中；卡住了 = 受阻（必须写需要的支持）；做完了 = 已完成；没变化 = 确认暂无变化。</p>
+    </section>
+  </div>
+  ${f.saved ? `<div role="status" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1E1B16;color:#FBFAF7;padding:12px 18px;border-radius:999px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2)">${f.saved}</div>` : ''}
+  </div>`;
+}
+
+const DESC = {
+  A: 'A 清单式：左侧导航，事项按行排列，信息密度高，适合天天用、事项多的情况。',
+  B: 'B 卡片式：按“今天要跟进 / 等我交付 / 还没定期限”分三栏卡片，一眼看清每类事情。',
+  C: 'C 简报式：先用一句话写结论，再按时间列出事项，适合老板快速看情况。',
+  F: '新填写方式：记一件事只问 3 个问题；更新进展先点“现在怎么样”，只出现需要填的框。'
+};
+
+function render() {
+  document.querySelectorAll('.bar button').forEach(b => b.classList.toggle('on', state[b.dataset.act] === b.dataset.v));
+  const stage = document.getElementById('stage');
+  if (state.dir === 'F') {
+    stage.innerHTML = state.device === 'phone' ? `<p class="desc">${DESC.F}</p><div class="phone-wrap"><div class="phone" style="overflow:auto">${renderF()}</div></div>` : renderF();
+    return;
+  }
+  if (state.device === 'phone') {
+    stage.innerHTML = `<p class="desc">${DESC[state.dir]}（手机版为静态示意，成员视角）</p><div class="phone-wrap"><div class="phone">${PHONE[state.dir]()}</div></div>`;
+  } else {
+    const m = model();
+    stage.innerHTML = state.dir === 'A' ? renderA(m) : state.dir === 'B' ? renderB(m) : renderC(m);
+  }
+}
+
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href="#"]');
+  if (a) e.preventDefault();
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act, v = el.dataset.v;
+  if (act === 'dir') { state.dir = v; state.open = v === 'B' ? null : 't1'; }
+  else if (act === 'device') state.device = v;
+  else if (act === 'view') { state.view = v; state.open = null; }
+  else if (act === 'open') state.open = v;
+  else if (act === 'toggle') state.open = state.open === v ? null : v;
+  else if (act === 'close') state.open = null;
+  else if (act === 'quick') state.reported[v] = true;
+  else if (act === 'form') { state.form[el.dataset.g] = v; state.form.saved = ''; }
+  else if (act === 'form-more') state.form.more = !state.form.more;
+  else if (act === 'form-save') { state.form.saved = v; setTimeout(() => { state.form.saved = ''; render(); }, 2600); }
+  render();
+});
+render();
+</script>
+</body>
+</html>
